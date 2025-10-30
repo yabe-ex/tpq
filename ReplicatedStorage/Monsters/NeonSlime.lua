@@ -1,7 +1,7 @@
 return {
 	Name = "NeonSlime",
 	TemplatePath = { "ServerStorage", "EnemyTemplates", "SlimeTemplate2" },
-	WalkSpeed = 20,
+	WalkSpeed = 0,
 	RespawnTime = 10,
 
 	-- 【新】バトルステータス
@@ -27,19 +27,19 @@ return {
 	SpawnLocations = {
 		{
 			islandName = "Hokkaido_02",
-			count = 5,
-			radiusPercent = 20, -- 島のサイズの25%範囲内
+			count = 3,
+			radiusPercent = 20,
 		},
 	},
 
 	ColorProfile = {
 		Body = Color3.fromRGB(255, 255, 0),
 
-		BodyMaterial = "Neon", -- Material 名を文字列で指定
-		BodyTransparency = 0.4, -- 透明度: 0～1
+		BodyMaterial = "Neon",
+		BodyTransparency = 0.4,
 
-		CoreMaterial = "Neon", -- Material 名を文字列で指定
-		CoreTransparency = 0.3, -- 透明度: 0～1
+		CoreMaterial = "Neon",
+		CoreTransparency = 0.3,
 
 		EyeTexture = "rbxassetid://126158076889568",
 	},

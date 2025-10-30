@@ -973,8 +973,80 @@ local function updateAllMonsterCounts()
 	print("[MonsterSpawner] モンスターカウント更新完了")
 end
 
+-- ServerScriptService/MonsterSpawner.server.lua
+
+-- (getZoneMonsterCounts の直後に、このヘルパー関数を「追加」)
+-- ★【新規追加】*定義上*のモンスター数を取得するヘルパー
+local function getDefinedMonsterCounts(zoneName)
+	local counts = {}
+	local islandsInZone = {}
+
+	-- (spawnMonstersForZone からロジックを流用)
+	local ContinentsRegistry = require(ReplicatedStorage.Continents.Registry)
+	local Continents = {}
+	for _, continent in ipairs(ContinentsRegistry) do
+		Continents[continent.name] = continent
+	end
+	if Continents[zoneName] then
+		local continent = Continents[zoneName]
+		for _, islandName in ipairs(continent.islands) do
+			islandsInZone[islandName] = true
+		end
+	else
+		islandsInZone[zoneName] = true
+	end
+	-- (流用ここまで)
+
+	for _, def in ipairs(Registry) do
+		local monsterName = def.Name or "Monster"
+		if def.SpawnLocations then
+			for _, location in ipairs(def.SpawnLocations) do
+				local islandName = location.islandName
+				if islandsInZone[islandName] then
+					counts[monsterName] = (counts[monsterName] or 0) + (location.count or 0)
+				end
+			end
+		end
+	end
+	return counts
+end
+
+-- リスポーン処理（島対応版）
+local function scheduleRespawn(monsterName, def, islandName)
+	if not def or not def.RespawnTime then
+		print(("[MonsterSpawner] %s のRespawnTime が定義されていません"):format(monsterName))
+		return
+	end
+
+	local respawnData = {
+		monsterName = monsterName,
+		def = def,
+		islandName = islandName,
+		respawnAt = os.clock() + def.RespawnTime,
+	}
+
+	table.insert(RespawnQueue, respawnData)
+	print(
+		("[MonsterSpawner] %s がリスポーンキューに追加されました（%d秒後）"):format(
+			monsterName,
+			def.RespawnTime
+		)
+	)
+end
+
 -- カスタムカウントでモンスターをスポーン（ロード時用）
 local function spawnMonstersWithCounts(zoneName, customCounts)
+	-- ★【修正1】カウンターをリセット
+	if _G.ResetMonsterCountsForZone then
+		_G.ResetMonsterCountsForZone(zoneName)
+	else
+		warn(
+			("[MonsterSpawner] _G.ResetMonsterCountsForZone が見つかりません（spawnMonstersWithCounts）"):format(
+				zoneName
+			)
+		)
+	end
+
 	if isSafeZone(zoneName) then
 		print(
 			("[MonsterSpawner] %s は安全地帯です。モンスターをスポーンしません"):format(zoneName)
@@ -982,20 +1054,23 @@ local function spawnMonstersWithCounts(zoneName, customCounts)
 		return
 	end
 
+	-- ★【修正2】customCounts が nil や {} の場合、空テーブルとして扱う
 	if not customCounts or type(customCounts) ~= "table" then
-		print(
-			("[MonsterSpawner] カスタムカウントが無効です。通常スポーンを実行: %s"):format(
-				zoneName
-			)
-		)
-		spawnMonstersForZone(zoneName)
-		return
+		customCounts = {}
 	end
 
-	print(("[MonsterSpawner] カスタムカウントでモンスターをスポーン: %s"):format(zoneName))
-	print(("[MonsterSpawner] カウント: %s"):format(game:GetService("HttpService"):JSONEncode(customCounts)))
+	-- ★【修正3】*定義上*のモンスター数を取得
+	local definedCounts = getDefinedMonsterCounts(zoneName)
 
-	-- カスタムカウントに基づいてスポーン
+	print(("[MonsterSpawner] カスタムカウントでスポーン (ロード): %s"):format(zoneName))
+	print(("[MonsterSpawner] ...定義数: %s"):format(game:GetService("HttpService"):JSONEncode(definedCounts)))
+	print(
+		("[MonsterSpawner] ...ロード数 (生存): %s"):format(
+			game:GetService("HttpService"):JSONEncode(customCounts)
+		)
+	)
+
+	-- ★【修正4】ロード数 (customCounts) に基づいて *生存* モンスターをスポーン
 	for monsterName, count in pairs(customCounts) do
 		if count <= 0 then
 			continue
@@ -1003,8 +1078,6 @@ local function spawnMonstersWithCounts(zoneName, customCounts)
 
 		local template = TemplateCache[monsterName]
 		local def = nil
-
-		-- 定義を取得
 		for _, regDef in ipairs(Registry) do
 			if regDef.Name == monsterName then
 				def = regDef
@@ -1013,27 +1086,17 @@ local function spawnMonstersWithCounts(zoneName, customCounts)
 		end
 
 		if not template or not def then
-			if not template then
-				warn(("[MonsterSpawner] テンプレート未発見: %s"):format(monsterName))
-			end
-			if not def then
-				warn(("[MonsterSpawner] 定義未発見: %s"):format(monsterName))
-			end
+			warn(("[MonsterSpawner] テンプレート/定義未発見 (生存): %s"):format(monsterName))
 			continue
 		end
 
-		print(("[MonsterSpawner] %s を %d 体スポーン開始"):format(monsterName, count))
-
-		-- SpawnLocations から、このゾーンに該当するロケーション を取得
+		-- (既存のスポーンロジックを流用)
 		if def.SpawnLocations then
 			local validLocations = {}
-
-			-- ゾーンに含まれる島を抽出
 			local Continents = {}
 			for _, continent in ipairs(ContinentsRegistry) do
 				Continents[continent.name] = continent
 			end
-
 			local continentIslands = {}
 			if Continents[zoneName] then
 				for _, islandName in ipairs(Continents[zoneName].islands) do
@@ -1042,67 +1105,145 @@ local function spawnMonstersWithCounts(zoneName, customCounts)
 			else
 				continentIslands[zoneName] = true
 			end
-
-			-- この大陸に該当するSpawnLocations を集める
 			for _, location in ipairs(def.SpawnLocations) do
 				if continentIslands[location.islandName] then
 					table.insert(validLocations, location)
 				end
 			end
 
-			-- スポーン実行
 			if #validLocations > 0 then
-				-- 複数ロケーションに均等配分
 				local perLocation = math.ceil(count / #validLocations)
 				local remaining = count
-
 				for _, location in ipairs(validLocations) do
 					local spawnCount = math.min(perLocation, remaining)
 					if spawnCount > 0 then
-						print(
-							("[MonsterSpawner] %s -> %s: %d 体 (radiusPercent: %d%%)"):format(
-								monsterName,
-								location.islandName,
-								spawnCount,
-								location.radiusPercent or 100
-							)
-						)
-
+						-- print(("[MonsterSpawner] (生存) %s -> %s: %d 体"):format(monsterName, location.islandName, spawnCount))
 						for i = 1, spawnCount do
-							-- def をコピーして radiusPercent を上書き
 							local spawnDef = {}
 							for k, v in pairs(def) do
 								spawnDef[k] = v
 							end
 							spawnDef.radiusPercent = location.radiusPercent or 100
 
-							spawnMonster(template, i, spawnDef, location.islandName)
+							spawnMonster(template, i, spawnDef, location.islandName) -- 生存分をスポーン
 
 							if i % 5 == 0 then
 								task.wait()
 							end
 						end
-
 						remaining = remaining - spawnCount
 					end
-
 					if remaining <= 0 then
 						break
 					end
 				end
 			else
-				print(
-					("[MonsterSpawner] %s は %s に SpawnLocations がありません"):format(monsterName, zoneName)
+				warn(
+					("[MonsterSpawner] (生存) %s は %s に SpawnLocations がありません"):format(
+						monsterName,
+						zoneName
+					)
 				)
 			end
 		end
 	end
 
-	print(("[MonsterSpawner] %s のモンスタースポーン完了"):format(zoneName))
+	-- ★【修正5】*不足分* を計算してリスポーンキューに入れる
+	for monsterName, definedCount in pairs(definedCounts) do
+		local loadedCount = customCounts[monsterName] or 0
+		local deficit = definedCount - loadedCount -- (例: 5 - 1 = 4)
+
+		if deficit > 0 then
+			print(
+				("[MonsterSpawner] ...不足分 %s: %d 体 (定義 %d - 生存 %d)。リスポーン予約します。"):format(
+					monsterName,
+					deficit,
+					definedCount,
+					loadedCount
+				)
+			)
+
+			local def = nil
+			for _, regDef in ipairs(Registry) do
+				if regDef.Name == monsterName then
+					def = regDef
+					break
+				end
+			end
+
+			if def then
+				-- 不足しているモンスターがスポーンすべき島を特定 (上記ロジックの再利用)
+				local validLocations = {}
+				local Continents = {}
+				for _, continent in ipairs(ContinentsRegistry) do
+					Continents[continent.name] = continent
+				end
+				local continentIslands = {}
+				if Continents[zoneName] then
+					for _, islandName in ipairs(Continents[zoneName].islands) do
+						continentIslands[islandName] = true
+					end
+				else
+					continentIslands[zoneName] = true
+				end
+				for _, location in ipairs(def.SpawnLocations) do
+					if continentIslands[location.islandName] then
+						table.insert(validLocations, location)
+					end
+				end
+
+				if #validLocations > 0 then
+					for i = 1, deficit do
+						-- どの島でリスポーンさせるか (均等に割り振る)
+						local location = validLocations[(i % #validLocations) + 1]
+						local islandName = location.islandName
+
+						-- リスポーン用のDefを作成 (RespawnTimeはそのまま、radiusPercentをlocationから取得)
+						local respawnDef = {}
+						for k, v in pairs(def) do
+							respawnDef[k] = v
+						end
+						respawnDef.RespawnTime = def.RespawnTime or 10
+						respawnDef.radiusPercent = location.radiusPercent or 100
+
+						-- scheduleRespawn を呼び出し
+						scheduleRespawn(monsterName, respawnDef, islandName)
+					end
+				else
+					warn(
+						("[MonsterSpawner] ...%s の不足分をリスポーンできません (SpawnLocations が %s に見つかりません)"):format(
+							monsterName,
+							zoneName
+						)
+					)
+				end
+			else
+				warn(
+					("[MonsterSpawner] ...%s の定義が見つかりません (リスポーン不可)"):format(
+						monsterName
+					)
+				)
+			end
+		end
+	end
+
+	print(("[MonsterSpawner] %s のモンスタースポーン（ロード）完了"):format(zoneName))
 end
 
 -- ゾーンにモンスターをスポーンする（大陸対応版）
 function spawnMonstersForZone(zoneName)
+	-- ★【修正】スポーン実行前に、対象ゾーンの既存カウントをリセットする
+	if _G.ResetMonsterCountsForZone then
+		_G.ResetMonsterCountsForZone(zoneName)
+	else
+		warn(
+			("[MonsterSpawner] _G.ResetMonsterCountsForZone が見つかりません（spawnMonstersForZone）"):format(
+				zoneName
+			)
+		)
+	end
+	-- ★【修正】ここまで
+
 	if isSafeZone(zoneName) then
 		print(
 			("[MonsterSpawner] %s は安全地帯です。モンスターをスポーンしません"):format(zoneName)
@@ -1181,29 +1322,6 @@ function spawnMonstersForZone(zoneName)
 	end
 end
 
--- リスポーン処理（島対応版）
-local function scheduleRespawn(monsterName, def, islandName)
-	if not def or not def.RespawnTime then
-		print(("[MonsterSpawner] %s のRespawnTime が定義されていません"):format(monsterName))
-		return
-	end
-
-	local respawnData = {
-		monsterName = monsterName,
-		def = def,
-		islandName = islandName,
-		respawnAt = os.clock() + def.RespawnTime,
-	}
-
-	table.insert(RespawnQueue, respawnData)
-	print(
-		("[MonsterSpawner] %s がリスポーンキューに追加されました（%d秒後）"):format(
-			monsterName,
-			def.RespawnTime
-		)
-	)
-end
-
 -- ★ 【新規追加】リスポーンキューを処理する関数
 local function processRespawnQueue()
 	print("[MonsterSpawner] リスポーンキュー処理開始")
@@ -1232,12 +1350,9 @@ local function processRespawnQueue()
 								)
 							)
 
-							-- ★ 修正：count = 1 に固定（リスポーンは常に1匹）
-							local counts = {}
-							counts[data.monsterName] = 1 -- ★ 常に1匹だけ
-
-							-- spawnMonstersWithCounts を呼び出し
-							spawnMonstersWithCounts(zoneName, counts)
+							-- ★【修正】spawnMonstersWithCounts ではなく、spawnMonster を直接呼び出す
+							-- (spawnMonster は内部で MonsterCounts[islandName] をインクリメントする)
+							spawnMonster(template, 1, data.def, data.islandName)
 						else
 							warn(
 								("[MonsterSpawner] テンプレート '%s' が見つかりません"):format(
@@ -1283,16 +1398,42 @@ local function startGlobalAILoop()
 								)
 							)
 						elseif not result then
+							-- ▼▼▼【ここからが修正箇所】▼▼▼
+							-- (モンスターが倒された、またはデスポーンした場合)
+
 							local monsterDef = state.def
 							local monsterName = monsterDef.Name or "Unknown"
-							local zoneName = state.monster:GetAttribute("SpawnZone") or "Unknown"
 
-							if MonsterCounts[zoneName] and MonsterCounts[zoneName][monsterName] then
-								MonsterCounts[zoneName][monsterName] = MonsterCounts[zoneName][monsterName] - 1
+							-- ★ 修正：SpawnZone (大陸名) ではなく SpawnIsland (島名) を取得
+							local islandName = state.monster:GetAttribute("SpawnIsland") or "Unknown"
+
+							if islandName == "Unknown" then
+								warn(
+									("[MonsterSpawner] %s の SpawnIsland 属性が見つかりません。リスポーンできません。"):format(
+										monsterName
+									)
+								)
+								table.remove(ActiveMonsters, i)
+								-- (リスポーン予約をしないで終了)
+							else
+								-- ★ 修正：カウンターのデクリメントも島名(islandName)で行う
+								if MonsterCounts[islandName] and MonsterCounts[islandName][monsterName] then
+									MonsterCounts[islandName][monsterName] = MonsterCounts[islandName][monsterName] - 1
+								else
+									warn(
+										("[MonsterSpawner] MonsterCounts[%s][%s] が見つかりません（デクリメント失敗）"):format(
+											islandName,
+											monsterName
+										)
+									)
+								end
+
+								table.remove(ActiveMonsters, i)
+
+								-- ★ 修正：リスポーン予約にも大陸名(zoneName)ではなく島名(islandName)を渡す
+								scheduleRespawn(monsterName, monsterDef, islandName)
 							end
-
-							table.remove(ActiveMonsters, i)
-							scheduleRespawn(monsterName, monsterDef, zoneName)
+							-- ▲▲▲【ここまでが修正箇所】▲▲▲
 						end
 					end
 				end

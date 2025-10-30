@@ -1,7 +1,7 @@
 return {
 	Name = "IceSlime",
 	TemplatePath = { "ServerStorage", "EnemyTemplates", "SlimeTemplate2" },
-	WalkSpeed = 20,
+	WalkSpeed = 0,
 	RespawnTime = 10,
 
 	-- 【新】バトルステータス

@@ -1,26 +1,26 @@
 -- ServerScriptService/Bootstrap.server.lua
 -- ゲーム初期化スクリプト（スポーン完了シグナル安定化版）
 
--- -- ★ 【一時的】セーブデータをクリア
--- local DataStoreService = game:GetService("DataStoreService")
--- local PLAYER_DATA_STORE = DataStoreService:GetDataStore("TypingQuestPlayerSaveData_V1")
+-- ★ 【一時的】セーブデータをクリア
+local DataStoreService = game:GetService("DataStoreService")
+local PLAYER_DATA_STORE = DataStoreService:GetDataStore("TypingQuestPlayerSaveData_V1")
 
--- -- ゲーム開始時に1回だけ実行
--- local CLEAR_SAVE = true -- クリアする場合は true、しない場合は false
+-- ゲーム開始時に1回だけ実行
+local CLEAR_SAVE = false -- クリアする場合は true、しない場合は false
 
--- if CLEAR_SAVE then
--- 	print("[TEMP] すべてのセーブデータをクリア中...")
--- 	local success, err = pcall(function()
--- 		-- 注意：全プレイヤーのセーブを削除するため、テスト用途のみ
--- 		PLAYER_DATA_STORE:RemoveAsync("6023547159") -- あなたのユーザーID
--- 	end)
+if CLEAR_SAVE then
+	print("[TEMP] すべてのセーブデータをクリア中...")
+	local success, err = pcall(function()
+		-- 注意：全プレイヤーのセーブを削除するため、テスト用途のみ
+		PLAYER_DATA_STORE:RemoveAsync("6023547159") -- あなたのユーザーID
+	end)
 
--- 	if success then
--- 		print("[TEMP] セーブクリア完了")
--- 	else
--- 		warn("[TEMP] セーブクリア失敗:", err)
--- 	end
--- end
+	if success then
+		print("[TEMP] セーブクリア完了")
+	else
+		warn("[TEMP] セーブクリア失敗:", err)
+	end
+end
 
 local ServerScriptService = game:GetService("ServerScriptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -223,17 +223,32 @@ local function setupPlayerSpawn(player)
 					return
 				end
 
-				-- ワープ実行
-				-- hrp.CFrame = CFrame.new(loadedLocation.X, loadedLocation.Y, loadedLocation.Z)
+				-- ★ 修正：ロード時のワープ先座標を LastLoadedData から取得
+				local warpLocation = LastLoadedData[player] and LastLoadedData[player].Location
+				if not warpLocation then
+					warn(("[Bootstrap] %s のロードデータがnil、デフォルト使用"):format(player.Name))
+					warpLocation = {
+						ZoneName = "ContinentTown",
+						X = townConfig.centerX,
+						Y = townConfig.baseY + 25,
+						Z = townConfig.centerZ,
+					}
+				end
+
+				local targetZone = warpLocation.ZoneName
+
+				-- ワープ実行 (WarpPlayerToZone はモンスターをスポーン *しない* ことに注意)
 				ZoneManager.WarpPlayerToZone(player, targetZone)
-				-- ZoneManager.PlayerZones[player] = targetZone
+
+				-- ★ 修正：ロードした正確な座標に移動
+				hrp.CFrame = CFrame.new(warpLocation.X, warpLocation.Y, warpLocation.Z)
 
 				print(
 					("[Bootstrap] ✓ %s をワープ完了 (%.0f, %.0f, %.0f)"):format(
 						player.Name,
-						loadedLocation.X,
-						loadedLocation.Y,
-						loadedLocation.Z
+						warpLocation.X,
+						warpLocation.Y,
+						warpLocation.Z
 					)
 				)
 
@@ -241,37 +256,45 @@ local function setupPlayerSpawn(player)
 				print(("[Bootstrap] [SpawnReady] %s に通知を送信"):format(player.Name))
 				SpawnReadyEvent:FireClient(player)
 
+				-- ▼▼▼【ここからが修正箇所】▼▼▼
 				-- 以下、並行処理で復元・初期化を実行
 				task.spawn(function()
 					task.wait(1)
 
 					if LastLoadedData[player] and LastLoadedData[player].FieldState then
+						-- 【A: セーブデータがある場合】
 						local zoneName = LastLoadedData[player].CurrentZone
 						print(("[Bootstrap] %s のフィールド状態を復元: %s"):format(player.Name, zoneName))
+
+						-- 1. モンスターを復元
 						DataCollectors.restoreFieldState(zoneName, LastLoadedData[player].FieldState)
+
+						-- 2. ポータルを生成
 						if _G.CreatePortalsForZone then
 							_G.CreatePortalsForZone(zoneName)
 						end
 					else
-						print(("[Bootstrap] %s は初回プレイ"):format(player.Name))
-						if targetZone ~= START_ZONE_NAME then
-							-- ★ 【重要】ファストトラベルシステムが管理するため、ここでは呼ばない
+						-- 【B: セーブデータがない場合 (新規 or セーブせず終了)】
+						print(
+							("[Bootstrap] %s は初回プレイ、または復元データなし"):format(player.Name)
+						)
+
+						-- ★ 修正：FastTravelSystem任せにせず、ここで通常スポーンを実行する
+						if _G.SpawnMonstersForZone then
 							print(
-								("[Bootstrap] %s のモンスターは FastTravelSystem で管理します"):format(
+								("[Bootstrap] %s のために %s の通常モンスターをスポーン"):format(
+									player.Name,
 									targetZone
 								)
 							)
-							if _G.CreatePortalsForZone then
-								_G.CreatePortalsForZone(targetZone)
-							end
+							_G.SpawnMonstersForZone(targetZone)
 						else
-							-- ★ Town のモンスターのみ生成
-							if _G.SpawnMonstersForZone then
-								_G.SpawnMonstersForZone(START_ZONE_NAME)
-							end
-							if _G.CreatePortalsForZone then
-								_G.CreatePortalsForZone(START_ZONE_NAME)
-							end
+							warn("[Bootstrap] _G.SpawnMonstersForZone が見つかりません")
+						end
+
+						-- 2. ポータルを生成
+						if _G.CreatePortalsForZone then
+							_G.CreatePortalsForZone(targetZone)
 						end
 					end
 
@@ -320,4 +343,18 @@ Players.PlayerRemoving:Connect(function(player)
 end)
 
 print("[Bootstrap] === ゲーム初期化完了 ===")
+
+-- ★【新規追加】MenuUIの「ロード」ボタン（Studio用）の処理
+local RequestLoadRespawnEvent = ReplicatedStorage:FindFirstChild("RequestLoadRespawn")
+if RequestLoadRespawnEvent then
+	RequestLoadRespawnEvent.OnServerEvent:Connect(function(player)
+		print(("[Bootstrap] %s からロード（リスポーン）要求を受信"):format(player.Name))
+
+		-- 既存の setupPlayerSpawn 関数を再利用して、ロード処理を強制実行
+		setupPlayerSpawn(player)
+	end)
+else
+	warn("[Bootstrap] RequestLoadRespawnEvent が見つかりません")
+end
+
 print(("[Bootstrap] プレイヤーは街（%s）からスタートします"):format(START_ZONE_NAME))
