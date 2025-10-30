@@ -254,7 +254,7 @@ cyl.Parent = worldFolder
 		-- print(("[IslandPin] %s\t(%.1f, %.1f)"):format(baseName, cfg.centerX, cfg.centerZ))
 		local cx = tonumber(cfg.centerX) or 0
 		local cz = tonumber(cfg.centerZ) or 0
-		print(string.format("[IslandPin] %s\t(%.1f, %.1f)", baseName, cx, cz))
+		-- print(string.format("[IslandPin] %s\t(%.1f, %.1f)", baseName, cx, cz))
 	end
 
 	local terrain = workspace.Terrain

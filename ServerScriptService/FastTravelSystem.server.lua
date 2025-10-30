@@ -87,12 +87,37 @@ local function handleFastTravel(player, continentName)
 		task.spawn(function()
 			task.wait(1)
 
-			-- モンスター生成
-			if _G.SpawnMonstersForZone then
-				_G.SpawnMonstersForZone(continentName)
-				print(("[FastTravel] %s のモンスターを生成しました"):format(continentName))
+			-- ★ 【重要】モンスター生成時に、既存のモンスターをカウント
+			-- 既にモンスターがいる場合はスキップ（セーブ復元済みの可能性）
+			local totalMonsters = 0
+			if _G.GetZoneMonsterCounts then
+				local currentCounts = _G.GetZoneMonsterCounts(continentName)
+
+				if currentCounts then
+					for monsterName, count in pairs(currentCounts) do
+						totalMonsters = totalMonsters + count
+					end
+				end
+
+				print(("[FastTravel] %s の現在のモンスター数: %d"):format(continentName, totalMonsters))
+			end
+
+			-- ★ 【判定】モンスターがいない場合のみ生成
+			if totalMonsters == 0 then
+				-- モンスター生成
+				if _G.SpawnMonstersForZone then
+					_G.SpawnMonstersForZone(continentName)
+					print(("[FastTravel] %s のモンスターを生成しました"):format(continentName))
+				else
+					warn("[FastTravel] SpawnMonstersForZone が見つかりません")
+				end
 			else
-				warn("[FastTravel] SpawnMonstersForZone が見つかりません")
+				print(
+					("[FastTravel] %s にはすでに %d体のモンスターがいます。新規生成をスキップ"):format(
+						continentName,
+						totalMonsters
+					)
+				)
 			end
 
 			-- ポータル生成

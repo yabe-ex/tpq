@@ -368,6 +368,10 @@ function ZoneManager.UnloadZone(zoneName)
 		end
 	end
 
+	if _G.ResetMonsterCountsForZone then
+		_G.ResetMonsterCountsForZone(zoneName)
+	end
+
 	ZoneManager.ActiveZones[zoneName] = nil
 	print(("[ZoneManager] ゾーン削除完了: %s"):format(zoneName))
 end

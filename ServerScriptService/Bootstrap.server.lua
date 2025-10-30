@@ -1,6 +1,27 @@
 -- ServerScriptService/Bootstrap.server.lua
 -- ゲーム初期化スクリプト（スポーン完了シグナル安定化版）
 
+-- -- ★ 【一時的】セーブデータをクリア
+-- local DataStoreService = game:GetService("DataStoreService")
+-- local PLAYER_DATA_STORE = DataStoreService:GetDataStore("TypingQuestPlayerSaveData_V1")
+
+-- -- ゲーム開始時に1回だけ実行
+-- local CLEAR_SAVE = true -- クリアする場合は true、しない場合は false
+
+-- if CLEAR_SAVE then
+-- 	print("[TEMP] すべてのセーブデータをクリア中...")
+-- 	local success, err = pcall(function()
+-- 		-- 注意：全プレイヤーのセーブを削除するため、テスト用途のみ
+-- 		PLAYER_DATA_STORE:RemoveAsync("6023547159") -- あなたのユーザーID
+-- 	end)
+
+-- 	if success then
+-- 		print("[TEMP] セーブクリア完了")
+-- 	else
+-- 		warn("[TEMP] セーブクリア失敗:", err)
+-- 	end
+-- end
+
 local ServerScriptService = game:GetService("ServerScriptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
@@ -234,13 +255,20 @@ local function setupPlayerSpawn(player)
 					else
 						print(("[Bootstrap] %s は初回プレイ"):format(player.Name))
 						if targetZone ~= START_ZONE_NAME then
-							if _G.SpawnMonstersForZone then
-								_G.SpawnMonstersForZone(targetZone)
-							end
+							-- ★ 【重要】ファストトラベルシステムが管理するため、ここでは呼ばない
+							print(
+								("[Bootstrap] %s のモンスターは FastTravelSystem で管理します"):format(
+									targetZone
+								)
+							)
 							if _G.CreatePortalsForZone then
 								_G.CreatePortalsForZone(targetZone)
 							end
 						else
+							-- ★ Town のモンスターのみ生成
+							if _G.SpawnMonstersForZone then
+								_G.SpawnMonstersForZone(START_ZONE_NAME)
+							end
 							if _G.CreatePortalsForZone then
 								_G.CreatePortalsForZone(START_ZONE_NAME)
 							end

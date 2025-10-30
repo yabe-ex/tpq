@@ -89,7 +89,7 @@ do
 		if continent and continent.islands then
 			for _, islandName in ipairs(continent.islands) do
 				IslandToContinentMap[islandName] = continent.name
-				print(("[MonsterSpawner] マップ: %s -> %s"):format(islandName, continent.name))
+				-- print(("[MonsterSpawner] マップ: %s -> %s"):format(islandName, continent.name))
 			end
 		end
 	end
@@ -997,6 +997,10 @@ local function spawnMonstersWithCounts(zoneName, customCounts)
 
 	-- カスタムカウントに基づいてスポーン
 	for monsterName, count in pairs(customCounts) do
+		if count <= 0 then
+			continue
+		end
+
 		local template = TemplateCache[monsterName]
 		local def = nil
 
@@ -1008,97 +1012,93 @@ local function spawnMonstersWithCounts(zoneName, customCounts)
 			end
 		end
 
-		if template and def and count > 0 then
-			print(("[MonsterSpawner] %s を %d 体スポーン"):format(monsterName, count))
-
-			-- 各モンスターの配置先を決定
-			if def.SpawnLocations then
-				-- ★ 修正：島情報と count、radiusPercent を一緒に保持
-				local locationsInZone = {}
-				for _, location in ipairs(def.SpawnLocations) do
-					-- このゾーンに含まれる島かチェック
-					local isInZone = false
-
-					-- 大陸の場合
-					local Continents = {}
-					for _, continent in ipairs(ContinentsRegistry) do
-						Continents[continent.name] = continent
-					end
-
-					if Continents[zoneName] then
-						for _, islandName in ipairs(Continents[zoneName].islands) do
-							if islandName == location.islandName then
-								isInZone = true
-								break
-							end
-						end
-					elseif zoneName == location.islandName then
-						isInZone = true
-					end
-
-					if isInZone then
-						-- ★ 修正：location 全体を保存（islandName、radiusPercent を含む）
-						table.insert(locationsInZone, {
-							islandName = location.islandName,
-							radiusPercent = location.radiusPercent, -- radiusPercent を保存
-						})
-					end
-				end
-
-				-- 各ロケーションに配分
-				if #locationsInZone > 0 then
-					-- ★ 修正：customCounts の count を使用（SpawnLocations の count は使わない）
-					local countPerLocation = math.ceil(count / #locationsInZone)
-
-					for _, locationInfo in ipairs(locationsInZone) do
-						local islandName = locationInfo.islandName
-
-						print(
-							("[MonsterSpawner] %s -> %s: %d 体 (radiusPercent: %s)"):format(
-								monsterName,
-								islandName,
-								countPerLocation,
-								tostring(locationInfo.radiusPercent or "デフォルト")
-							)
-						)
-
-						-- 指定数分スポーン
-						for i = 1, math.min(countPerLocation, count) do
-							local spawnDef = {}
-							for k, v in pairs(def) do
-								spawnDef[k] = v
-							end
-							-- ★ 重要：location 固有の radiusPercent で上書き
-							if locationInfo.radiusPercent then
-								spawnDef.radiusPercent = locationInfo.radiusPercent
-							end
-
-							spawnMonster(template, i, spawnDef, islandName)
-							count = count - 1
-
-							if count <= 0 then
-								break
-							end
-							if i % 5 == 0 then
-								task.wait()
-							end
-						end
-
-						if count <= 0 then
-							break
-						end
-					end
-				end
-			end
-		else
+		if not template or not def then
 			if not template then
 				warn(("[MonsterSpawner] テンプレート未発見: %s"):format(monsterName))
 			end
 			if not def then
 				warn(("[MonsterSpawner] 定義未発見: %s"):format(monsterName))
 			end
+			continue
+		end
+
+		print(("[MonsterSpawner] %s を %d 体スポーン開始"):format(monsterName, count))
+
+		-- SpawnLocations から、このゾーンに該当するロケーション を取得
+		if def.SpawnLocations then
+			local validLocations = {}
+
+			-- ゾーンに含まれる島を抽出
+			local Continents = {}
+			for _, continent in ipairs(ContinentsRegistry) do
+				Continents[continent.name] = continent
+			end
+
+			local continentIslands = {}
+			if Continents[zoneName] then
+				for _, islandName in ipairs(Continents[zoneName].islands) do
+					continentIslands[islandName] = true
+				end
+			else
+				continentIslands[zoneName] = true
+			end
+
+			-- この大陸に該当するSpawnLocations を集める
+			for _, location in ipairs(def.SpawnLocations) do
+				if continentIslands[location.islandName] then
+					table.insert(validLocations, location)
+				end
+			end
+
+			-- スポーン実行
+			if #validLocations > 0 then
+				-- 複数ロケーションに均等配分
+				local perLocation = math.ceil(count / #validLocations)
+				local remaining = count
+
+				for _, location in ipairs(validLocations) do
+					local spawnCount = math.min(perLocation, remaining)
+					if spawnCount > 0 then
+						print(
+							("[MonsterSpawner] %s -> %s: %d 体 (radiusPercent: %d%%)"):format(
+								monsterName,
+								location.islandName,
+								spawnCount,
+								location.radiusPercent or 100
+							)
+						)
+
+						for i = 1, spawnCount do
+							-- def をコピーして radiusPercent を上書き
+							local spawnDef = {}
+							for k, v in pairs(def) do
+								spawnDef[k] = v
+							end
+							spawnDef.radiusPercent = location.radiusPercent or 100
+
+							spawnMonster(template, i, spawnDef, location.islandName)
+
+							if i % 5 == 0 then
+								task.wait()
+							end
+						end
+
+						remaining = remaining - spawnCount
+					end
+
+					if remaining <= 0 then
+						break
+					end
+				end
+			else
+				print(
+					("[MonsterSpawner] %s は %s に SpawnLocations がありません"):format(monsterName, zoneName)
+				)
+			end
 		end
 	end
+
+	print(("[MonsterSpawner] %s のモンスタースポーン完了"):format(zoneName))
 end
 
 -- ゾーンにモンスターをスポーンする（大陸対応版）
@@ -1303,6 +1303,55 @@ local function startGlobalAILoop()
 	end)
 end
 
+-- ★ 【新規追加】ゾーン削除時にモンスターカウントをリセット
+local function resetMonsterCountsForZone(zoneName)
+	print(("[MonsterSpawner] %s のモンスターカウントをリセット中..."):format(zoneName))
+
+	-- ★ 重要：ContinentsRegistry から Continents テーブルを再構築
+	local ContinentsRegistry = require(ReplicatedStorage.Continents.Registry)
+	local Continents = {}
+	for _, continent in ipairs(ContinentsRegistry) do
+		Continents[continent.name] = continent
+	end
+
+	-- ★ デバッグ出力：Continents が正しく取得されたか確認
+	print(("[MonsterSpawner] Continents テーブル構築完了。総数: %d"):format((function()
+		local count = 0
+		for _ in pairs(Continents) do
+			count = count + 1
+		end
+		return count
+	end)()))
+
+	-- zoneName が Continents に存在するか確認
+	if not Continents[zoneName] then
+		print(
+			("[MonsterSpawner] 警告: %s が Continents に見つかりません。直接 MonsterCounts をクリアします"):format(
+				zoneName
+			)
+		)
+		-- フォールバック：直接島の名前で削除を試みる
+		if MonsterCounts[zoneName] then
+			MonsterCounts[zoneName] = {}
+			print(("[MonsterSpawner] %s の MonsterCounts をクリア（直接指定）"):format(zoneName))
+		end
+		return
+	end
+
+	-- 通常処理：大陸に含まれる全島の MonsterCounts をクリア
+	local continent = Continents[zoneName]
+	if continent and continent.islands then
+		for _, islandName in ipairs(continent.islands) do
+			if MonsterCounts[islandName] then
+				MonsterCounts[islandName] = {}
+				print(("[MonsterSpawner] リセット完了: %s"):format(islandName))
+			end
+		end
+	end
+
+	print(("[MonsterSpawner] %s のカウントリセット完了"):format(zoneName))
+end
+
 -- ゾーンのモンスターを削除する
 function despawnMonstersForZone(zoneName)
 	print(("[MonsterSpawner] %s のモンスターを削除中..."):format(zoneName))
@@ -1406,6 +1455,7 @@ _G.DespawnMonstersForZone = despawnMonstersForZone
 _G.SpawnMonstersWithCounts = spawnMonstersWithCounts
 _G.GetZoneMonsterCounts = getZoneMonsterCounts
 _G.UpdateAllMonsterCounts = updateAllMonsterCounts
+_G.ResetMonsterCountsForZone = resetMonsterCountsForZone
 
 print("[MonsterSpawner] グローバル関数登録完了（カウント機能付き）")
 
