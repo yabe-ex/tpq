@@ -32,6 +32,7 @@ return {
 		},
 	},
 
+	-- カラー設定
 	ColorProfile = {
 		Body = Color3.fromRGB(255, 255, 255),
 
