@@ -1,7 +1,7 @@
 return {
-	Name = "IceSlime",
+	Name = "RubySlime",
 	TemplatePath = { "ServerStorage", "EnemyTemplates", "SlimeTemplate2" },
-	WalkSpeed = 0,
+	WalkSpeed = 25,
 	RespawnTime = 10,
 
 	-- 【新】バトルステータス
@@ -24,22 +24,22 @@ return {
 	Damage = 1, -- 後で削除予定
 
 	-- スポーン設定
-	SpawnLocations = {
-		{
-			islandName = "Hokkaido_13",
-			count = 10,
-			radiusPercent = 50, -- 島のサイズの25%範囲内
-		},
-	},
+	-- SpawnLocations = {
+	-- 	{
+	-- 		islandName = "Hokkaido_02",
+	-- 		count = 1,
+	-- 		radiusPercent = 30, -- 島のサイズの25%範囲内
+	-- 	},
+	-- },
 
 	-- カラー設定
 	ColorProfile = {
-		Body = Color3.fromRGB(255, 255, 255),
+		Body = Color3.fromRGB(255, 60, 60),
 
-		BodyMaterial = "Ice", -- Material 名を文字列で指定
-		BodyTransparency = 0.4, -- 透明度: 0～1
+		BodyMaterial = "Plastic", -- Material 名を文字列で指定
+		BodyTransparency = 0.3, -- 透明度: 0～1
 
-		CoreMaterial = "Ice", -- Material 名を文字列で指定
+		CoreMaterial = "Plastic", -- Material 名を文字列で指定
 		CoreTransparency = 0.3, -- 透明度: 0～1
 
 		EyeTexture = "rbxassetid://126158076889568",
@@ -51,8 +51,8 @@ return {
 	UpdateFar = 1.0,
 	UpdateNearbyThreshold = 150,
 
-	Brave = 9, -- 勇敢さレベル（0～9）
-	VariationRange = 0, -- 個体差の幅
+	Brave = 3, -- 勇敢さレベル（0～9）
+	VariationRange = 3, -- 個体差の幅
 }
 
 -- "Plastic"

@@ -1,8 +1,6 @@
 return {
 	Name = "NeonSlime",
 	TemplatePath = { "ServerStorage", "EnemyTemplates", "SlimeTemplate2" },
-	WalkSpeed = 0,
-	RespawnTime = 10,
 
 	-- 【新】バトルステータス
 	HP = 180, -- ライフ
@@ -24,11 +22,18 @@ return {
 	Damage = 1, -- 後で削除予定
 
 	-- スポーン設定
+	-- SpawnLocations = {
+	-- 	{
+	-- 		islandName = "Hokkaido_31",
+	-- 		count = 10,
+	-- 		radiusPercent = 50,
+	-- 	},
+	-- },
 	SpawnLocations = {
 		{
 			islandName = "Hokkaido_02",
-			count = 3,
-			radiusPercent = 20,
+			count = 10,
+			radiusPercent = 50, -- 島のサイズの25%範囲内
 		},
 	},
 
@@ -50,8 +55,9 @@ return {
 	UpdateFar = 1.0,
 	UpdateNearbyThreshold = 150,
 
-	Brave = 9, -- 勇敢さレベル（0～9）
-	VariationRange = 0, -- 個体差の幅
+	WalkSpeed = 15, -- 歩く速さ
+	Brave = 5, -- 勇敢さレベル（0～9）
+	VariationRange = 4, -- 個体差の幅
 }
 
 -- "Plastic"

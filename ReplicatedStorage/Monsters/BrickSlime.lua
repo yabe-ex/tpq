@@ -1,7 +1,7 @@
 return {
 	Name = "BrickSlime",
 	TemplatePath = { "ServerStorage", "EnemyTemplates", "SlimeTemplate2" },
-	WalkSpeed = 20,
+	WalkSpeed = 0,
 	RespawnTime = 10,
 
 	-- 【新】バトルステータス
@@ -24,11 +24,18 @@ return {
 	Damage = 1, -- 後で削除予定
 
 	-- スポーン設定
+	-- SpawnLocations = {
+	-- 	{
+	-- 		islandName = "Hokkaido_19",
+	-- 		count = 10,
+	-- 		radiusPercent = 50, -- 島のサイズの25%範囲内
+	-- 	},
+	-- },
 	SpawnLocations = {
 		{
-			islandName = "Hokkaido_02",
-			count = 5,
-			radiusPercent = 20, -- 島のサイズの25%範囲内
+			islandName = "Hokkaido_13",
+			count = 10,
+			radiusPercent = 50, -- 島のサイズの25%範囲内
 		},
 	},
 

@@ -195,7 +195,9 @@ function AIState.new(monster, def)
 	self.isMoving = false -- 移動状態か
 	self.isWaiting = false -- 待機状態か (停止状態)
 	self.waitEndTime = 0 -- 待機終了時刻
-	-- 【修正点1 終わり】
+
+	-- ★ 【新規追加】追跡状態フラグ
+	self.isChasing = false
 
 	-- デバッグ出力
 	print(
@@ -348,6 +350,8 @@ local function updateLabel(monster: Model, braveScore: number, distToPlayer: num
 	end
 end
 
+-- ServerScriptService/MonsterSpawner.server.lua
+
 function AIState:update()
 	if not self.monster.Parent or not self.humanoid or not self.root then
 		return false
@@ -355,7 +359,6 @@ function AIState:update()
 
 	if self.monster:GetAttribute("Defeated") then
 		if not self.loggedDefeated then
-			-- print(("[AI DEBUG] %s - Defeated状態のためスキップ"):format(self.monster.Name))
 			self.loggedDefeated = true
 		end
 		return false
@@ -414,7 +417,6 @@ function AIState:update()
 	end
 
 	local p, dist = nearestPlayer(self.root.Position)
-	local chaseRange = self.def.ChaseDistance or 60
 	local now = os.clock()
 
 	-- ★ 【修正】BattleStartDistance を参照
@@ -476,46 +478,12 @@ function AIState:update()
 		end
 	end
 
-	-- ★ 【修正】移動してから海チェック
-	local isInWater = self.root.Position.Y < 0 or self.humanoid:GetState() == Enum.HumanoidStateType.Swimming
-
-	-- ラベル更新
-	-- local label = self.root:FindFirstChild("DebugInfo") and self.root.DebugInfo:FindFirstChild("InfoText")
-	-- if label then
-	-- 	-- ★ 【修正】Brave レベルに応じた行動表示
-	-- 	local behaviorName = ""
-	-- 	if self.braveScore >= 7 then
-	-- 		behaviorName = "CHASE"
-	-- 	elseif self.braveScore >= 5 then
-	-- 		behaviorName = "NORMAL"
-	-- 	elseif self.braveScore >= 3 then
-	-- 		behaviorName = "TIMID"
-	-- 	else
-	-- 		behaviorName = "FLEE"
-	-- 	end
-	-- 	label.Text =
-	-- 		string.format("%s\nBrave:%.1f %s | %.1fm", self.monster.Name, self.braveScore, behaviorName, dist or 999)
-	-- end
-
-	-- ラベル更新関数を呼び出し
-	if showLabels then
-		if dist then
-			updateLabel(self.monster, self.braveScore, dist, "Free")
-		else
-			updateLabel(self.monster, self.braveScore, 999, "Free")
-		end
-	end
-	updateLabel(self.monster, self.braveScore, dist, "Free")
-	local gui = self.root:FindFirstChild("DebugInfo")
-	if gui then
-		gui.Enabled = not isInWater
-	end
-
-	-- 【修正点2】徘徊ロジックを再構築
+	-- 徘徊ロジック（★ 待機時間を 0.1秒 に変更）
 	local function wanderLogic()
 		local w = self.def.Wander or {}
-		local minWait = w.MinWait or 2
-		local maxWait = w.MaxWait or 5
+		-- ★ 修正：徘徊中の停止をほぼ 0 にする
+		local minWait = w.MinWait or 0
+		local maxWait = w.MaxWait or 0.1 -- 0だと稀にスタックするため 0.1
 		local minRadius = w.MinRadius or 20
 		local maxRadius = w.MaxRadius or 60
 		local stopDistance = 5 -- 目標到達と見なす距離
@@ -562,51 +530,117 @@ function AIState:update()
 			self.humanoid:MoveTo(self.wanderGoal)
 		end
 	end
-	-- 【修正点2 終わり】
 
-	-- ★ 【修正】Brave スコアに基づいた行動決定
+	-- ▼▼▼【AI挙動の修正箇所】▼▼▼
+
 	if not p then
 		-- プレイヤーがいない：徘徊のみ
+		self.isChasing = false -- プレイヤーがいないので追跡フラグをリセット
 		wanderLogic()
-	elseif self.braveScore >= 7 then
-		-- ★ 勇敢（Brave 7,8,9）：常に追跡
-		self.wanderGoal = nil
-		self.isMoving = false
-		self.isWaiting = false
-		self.humanoid:MoveTo(p.Character.HumanoidRootPart.Position)
-	elseif self.braveScore >= 5 then
-		-- ★ 中程度（Brave 5,6）：距離に応じて判定
-		if dist < chaseRange then
-			self.wanderGoal = nil
-			self.isMoving = false
-			self.isWaiting = false
-			self.humanoid:MoveTo(p.Character.HumanoidRootPart.Position)
-		else
-			wanderLogic()
-		end
-	elseif self.braveScore >= 3 then
-		-- ★ 臆病（Brave 3,4）：距離に応じて逃げ、範囲は中程度
-		if dist < chaseRange then
-			self.wanderGoal = nil
-			self.isMoving = false
-			self.isWaiting = false
-			local away = (self.root.Position - p.Character.HumanoidRootPart.Position).Unit
-			self.humanoid:MoveTo(self.root.Position + away * 100)
-		else
-			wanderLogic()
-		end
 	else
-		-- ★ 極度に臆病（Brave 0,1,2）：常に逃げ、最大範囲
-		self.wanderGoal = nil
-		self.isMoving = false
-		self.isWaiting = false
-		local away = (self.root.Position - p.Character.HumanoidRootPart.Position).Unit
-		self.humanoid:MoveTo(self.root.Position + away * 150)
+		-- プレイヤーがいる：Braveスコアに基づき、追跡/逃走/徘徊を動的に決定
+
+		-- 1. Braveスコア(0-9)を -1.0 (臆病) から +1.0 (勇敢) の係数に変換
+		local braveFactor = (self.braveScore - 4.5) / 4.5
+
+		-- 2. 基準となる距離を定義から取得
+		local baseChaseRange = self.def.ChaseDistance or 60
+		local baseFleeRange = self.def.ChaseDistance or 60
+
+		if braveFactor > 0 then
+			-- --- 勇敢 (Brave 5-9) ---
+
+			-- 追跡開始距離
+			local engageRange = baseChaseRange * (1 + braveFactor * 2.0)
+
+			-- ★ 追跡をやめる距離
+			local giveUpRange
+
+			-- ★ 修正1: (ランダム補正後の) *最終スコア* が 9.0 *以上* なら諦めない
+			if self.braveScore >= 9 then
+				giveUpRange = math.huge
+			else
+				giveUpRange = baseChaseRange * (1 + braveFactor * 4.0)
+			end
+
+			if self.isChasing then
+				-- 【状態】追跡中
+				if dist > giveUpRange then
+					-- 諦める
+					self.isChasing = false
+
+					-- ★ 修正2: 徘徊の待機状態を強制リセットし、即座に徘徊を開始
+					self.isWaiting = false
+					self.wanderGoal = nil
+
+					wanderLogic() -- 徘徊ロジックを呼び出し
+				else
+					-- 追跡継続
+					self.humanoid:MoveTo(p.Character.HumanoidRootPart.Position)
+					self.wanderGoal = nil
+					self.isMoving = false
+					self.isWaiting = false
+				end
+			else
+				-- 【状態】非追跡中
+				if dist <= engageRange then
+					-- 追跡開始
+					self.isChasing = true
+					self.humanoid:MoveTo(p.Character.HumanoidRootPart.Position)
+					self.wanderGoal = nil
+					self.isMoving = false
+					self.isWaiting = false
+				else
+					-- 範囲外：徘徊
+					wanderLogic()
+				end
+			end
+		else
+			-- --- 臆病 (Brave 0-4) ---
+			self.isChasing = false -- 臆病者は追跡しない
+
+			-- 逃走開始距離
+			local effectiveFleeRange = baseFleeRange * (1 + math.abs(braveFactor) * 1.5)
+
+			-- 逃走距離
+			local effectiveFleeDistance = 100 + math.abs(braveFactor) * 100
+
+			if dist <= effectiveFleeRange then
+				-- 逃走
+				self.wanderGoal = nil
+				self.isMoving = false
+				self.isWaiting = false
+				local away = (self.root.Position - p.Character.HumanoidRootPart.Position).Unit
+				self.humanoid:MoveTo(self.root.Position + away * effectiveFleeDistance)
+			else
+				-- 範囲外：徘徊
+				wanderLogic()
+			end
+		end
 	end
 
+	-- ▲▲▲【AI挙動の修正ここまで】▲▲▲
+
 	self.lastUpdateTime = now
+
+	-- ラベル更新
+	if showLabels then
+		if dist then
+			updateLabel(self.monster, self.braveScore, dist, "Free")
+		else
+			updateLabel(self.monster, self.braveScore, 999, "Free")
+		end
+	end
+
+	local gui = self.root:FindFirstChild("DebugInfo")
+	if gui then
+		gui.Enabled = not isInWater
+	end
+
 	return true
 end
+
+-- ServerScriptService/MonsterSpawner.server.lua
 
 -- スポーン処理（島指定版）
 local function spawnMonster(template: Model, index: number, def, islandName)
@@ -672,78 +706,6 @@ local function spawnMonster(template: Model, index: number, def, islandName)
 				end
 			end
 		end
-
-		-- === 両目の生成 （オリジナル）===
-		-- if def.ColorProfile.EyeTexture then
-		-- 	-- 目を貼る対象（Bodyに貼るのが自然）
-		-- 	local targetPart = m:FindFirstChild("Body") or m.PrimaryPart
-		-- 	if targetPart then
-		-- 		-- ▼ 調整用パラメータ（ColorProfileで上書き可能）
-		-- 		local useDecal = def.ColorProfile.UseDecal == true
-		-- 		local eyeSize = def.ColorProfile.EyeSize or 0.18
-		-- 		local eyeY = def.ColorProfile.EyeY or 0.48 -- 少し高めに配置
-		-- 		local eyeSeparation = def.ColorProfile.EyeSeparation or 0.18
-		-- 		local zOffset = def.ColorProfile.EyeZOffset or 1
-		-- 		local alwaysOnTop = def.ColorProfile.EyeAlwaysOnTop == true
-		-- 		local sizingMode = def.ColorProfile.EyeSizingMode or "Scale"
-		-- 		local pps = def.ColorProfile.PixelsPerStud or 60
-		-- 		local eyePixelSize = def.ColorProfile.EyePixelSize or 120
-
-		-- 		if useDecal then
-		-- 			-- ★ Decal方式（両目を1枚にした画像向け）
-		-- 			local decal = Instance.new("Decal")
-		-- 			decal.Texture = def.ColorProfile.EyeTexture
-		-- 			decal.Face = Enum.NormalId.Front
-		-- 			decal.Transparency = 0
-		-- 			decal.Parent = targetPart
-		-- 		else
-		-- 			-- ★ SurfaceGui + ImageLabel方式（個別に左右配置）
-		-- 			for _, sign in ipairs({ -1, 1 }) do
-		-- 				local eyeGui = Instance.new("SurfaceGui")
-		-- 				eyeGui.Name = (sign == -1) and "EyeGuiL" or "EyeGuiR"
-		-- 				eyeGui.Adornee = targetPart
-		-- 				eyeGui.Face = Enum.NormalId.Front
-		-- 				eyeGui.AlwaysOnTop = alwaysOnTop
-		-- 				eyeGui.LightInfluence = 1
-		-- 				eyeGui.ZOffset = zOffset
-		-- 				eyeGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-
-		-- 				if sizingMode == "Pixels" then
-		-- 					eyeGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-		-- 					eyeGui.PixelsPerStud = pps
-		-- 				end
-
-		-- 				eyeGui.Parent = targetPart
-
-		-- 				local img = Instance.new("ImageLabel")
-		-- 				img.Name = "Eye"
-		-- 				img.BackgroundTransparency = 1
-		-- 				img.Image = def.ColorProfile.EyeTexture
-		-- 				img.AnchorPoint = Vector2.new(0.5, 0.5)
-
-		-- 				if sizingMode == "Pixels" then
-		-- 					img.Size = UDim2.new(0, eyePixelSize, 0, eyePixelSize)
-		-- 					img.Position = UDim2.new(0.5 + (sign * eyeSeparation), 0, eyeY, 0)
-		-- 				else
-		-- 					img.Size = UDim2.new(eyeSize, 0, eyeSize, 0)
-		-- 					img.Position = UDim2.new(0.5 + (sign * eyeSeparation), 0, eyeY, 0)
-		-- 				end
-
-		-- 				local aspect = Instance.new("UIAspectRatioConstraint")
-		-- 				aspect.AspectRatio = 1
-		-- 				aspect.DominantAxis = Enum.DominantAxis.Height
-		-- 				aspect.Parent = img
-
-		-- 				pcall(function()
-		-- 					img.ScaleType = Enum.ScaleType.Fit
-		-- 				end)
-
-		-- 				img.ImageTransparency = 0
-		-- 				img.Parent = eyeGui
-		-- 			end
-		-- 		end
-		-- 	end
-		-- end
 
 		if def.ColorProfile.EyeTexture then
 			local targetPart = m:FindFirstChild("Body") or m.PrimaryPart
@@ -835,7 +797,15 @@ local function spawnMonster(template: Model, index: number, def, islandName)
 
 	for _, descendant in ipairs(m:GetDescendants()) do
 		if descendant:IsA("BasePart") and descendant ~= hrp then
-			descendant.CanCollide = true
+			-- ▼▼▼【ここからが修正箇所】▼▼▼
+			-- ★ 修正：目(Eye)は衝突判定を強制的にOFFにする
+			if descendant.Name == "LeftEye" or descendant.Name == "RightEye" then
+				descendant.CanCollide = false
+			else
+				descendant.CanCollide = true
+			end
+			-- ▲▲▲【ここまでが修正箇所】▲▲▲
+
 			descendant.Anchored = false
 
 			for _, child in ipairs(descendant:GetChildren()) do
@@ -875,7 +845,7 @@ local function spawnMonster(template: Model, index: number, def, islandName)
 	task.wait(0.05)
 	hrp.Anchored = false
 
-	-- attachLabel(m, 500)
+	-- attachLabel(m, 500) -- ★ ラベル表示を有効化
 
 	local aiState = AIState.new(m, def)
 	table.insert(ActiveMonsters, aiState)

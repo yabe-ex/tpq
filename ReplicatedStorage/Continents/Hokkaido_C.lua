@@ -327,7 +327,14 @@ return {
 				rotationRandomness = true,
 			},
 		},
-	}, --
+		-- {
+		-- 	model = "oTower",
+		-- 	position = { 754.6, 32.1, 466.3 },
+		-- 	size = 1.5,
+		-- 	groundOffset = -8,
+
+		-- },
+	},
 	BGM = "",
 	BGMVolume = 0.2,
 }
