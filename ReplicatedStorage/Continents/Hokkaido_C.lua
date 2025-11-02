@@ -2,6 +2,7 @@ return {
 	name = "Hokkaido_C",
 	displayName = "Hokkaido大陸",
 	islands = {
+		-- "Hokkaido_00",
 		"Hokkaido_01",
 		"Hokkaido_02",
 		"Hokkaido_03",

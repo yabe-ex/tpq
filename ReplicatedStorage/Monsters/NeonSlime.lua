@@ -1,6 +1,7 @@
 return {
 	Name = "NeonSlime",
 	TemplatePath = { "ServerStorage", "EnemyTemplates", "SlimeTemplate2" },
+	RespawnTime = 10,
 
 	-- 【新】バトルステータス
 	HP = 180, -- ライフ
@@ -40,10 +41,10 @@ return {
 	ColorProfile = {
 		Body = Color3.fromRGB(255, 255, 0),
 
-		BodyMaterial = "Neon",
+		BodyMaterial = "Plastic",
 		BodyTransparency = 0.4,
 
-		CoreMaterial = "Neon",
+		CoreMaterial = "Plastic",
 		CoreTransparency = 0.3,
 
 		EyeTexture = "rbxassetid://126158076889568",
@@ -55,9 +56,9 @@ return {
 	UpdateFar = 1.0,
 	UpdateNearbyThreshold = 150,
 
-	WalkSpeed = 15, -- 歩く速さ
-	Brave = 5, -- 勇敢さレベル（0～9）
-	VariationRange = 4, -- 個体差の幅
+	WalkSpeed = 10, -- 歩く速さ
+	Brave = 7, -- 勇敢さレベル（0～9）
+	VariationRange = 2, -- 個体差の幅
 }
 
 -- "Plastic"

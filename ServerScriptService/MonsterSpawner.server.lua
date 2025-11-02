@@ -357,6 +357,10 @@ function AIState:update()
 		return false
 	end
 
+	local braveFactor = (self.braveScore - 4.5) / 4.5 -- -1.0 ～ +1.0
+	local speedBraveMult = 1.0 + math.abs(braveFactor) * 0.5 -- 1.0 ～ 1.5
+	self.humanoid.WalkSpeed = self.originalSpeed * speedBraveMult
+
 	if self.monster:GetAttribute("Defeated") then
 		if not self.loggedDefeated then
 			self.loggedDefeated = true
@@ -560,7 +564,7 @@ function AIState:update()
 			if self.braveScore >= 9 then
 				giveUpRange = math.huge
 			else
-				giveUpRange = baseChaseRange * (1 + braveFactor * 4.0)
+				giveUpRange = baseChaseRange * (1 + braveFactor * 1.0)
 			end
 
 			if self.isChasing then
@@ -603,7 +607,7 @@ function AIState:update()
 			local effectiveFleeRange = baseFleeRange * (1 + math.abs(braveFactor) * 1.5)
 
 			-- 逃走距離
-			local effectiveFleeDistance = 100 + math.abs(braveFactor) * 100
+			local effectiveFleeDistance = 50 + math.abs(braveFactor) * 100
 
 			if dist <= effectiveFleeRange then
 				-- 逃走
@@ -640,14 +644,11 @@ function AIState:update()
 	return true
 end
 
--- ServerScriptService/MonsterSpawner.server.lua
-
 -- スポーン処理（島指定版）
 local function spawnMonster(template: Model, index: number, def, islandName)
 	local m = template:Clone()
 	m.Name = (def.Name or template.Name) .. "_" .. index
 
-	-- === 両目の生成（SurfaceGui方式・縦横比維持・貼り付き調整付き） ===
 	-- === カラー設定＋両目生成 ===
 	if def.ColorProfile then
 		-- まず Body/Core の色とマテリアルを設定
@@ -661,7 +662,6 @@ local function spawnMonster(template: Model, index: number, def, islandName)
 				end
 
 				if part:IsA("MeshPart") and (part.Name == "Body" or part.Name == "Core") then
-					-- ★ 全て同じ物理プロパティに統一
 					part.CustomPhysicalProperties = PhysicalProperties.new(0.01, 0.01, 0.01)
 				end
 
@@ -671,18 +671,16 @@ local function spawnMonster(template: Model, index: number, def, islandName)
 						part.Color = def.ColorProfile.Body
 					end
 
-					-- ★ 設定ファイルから Material を読み込む
 					if def.ColorProfile.BodyMaterial then
 						part.Material = Enum.Material[def.ColorProfile.BodyMaterial]
 					else
-						part.Material = Enum.Material.Neon -- デフォルト
+						part.Material = Enum.Material.Neon
 					end
 
-					-- ★ 設定ファイルから Transparency を読み込む
 					if def.ColorProfile.BodyTransparency then
 						part.Transparency = def.ColorProfile.BodyTransparency
 					else
-						part.Transparency = 0.2 -- デフォルト
+						part.Transparency = 0.2
 					end
 				-- Core（内側）
 				elseif part.Name == "Core" then
@@ -690,18 +688,16 @@ local function spawnMonster(template: Model, index: number, def, islandName)
 						part.Color = def.ColorProfile.Core
 					end
 
-					-- ★ 設定ファイルから Material を読み込む
 					if def.ColorProfile.CoreMaterial then
 						part.Material = Enum.Material[def.ColorProfile.CoreMaterial]
 					else
-						part.Material = Enum.Material.Granite -- デフォルト
+						part.Material = Enum.Material.Granite
 					end
 
-					-- ★ 設定ファイルから Transparency を読み込む
 					if def.ColorProfile.CoreTransparency then
 						part.Transparency = def.ColorProfile.CoreTransparency
 					else
-						part.Transparency = 0.1 -- デフォルト
+						part.Transparency = 0.1
 					end
 				end
 			end
@@ -714,7 +710,6 @@ local function spawnMonster(template: Model, index: number, def, islandName)
 				local leftEye = Instance.new("Part")
 				leftEye.Name = "LeftEye"
 				leftEye.Shape = Enum.PartType.Ball
-				-- leftEye.Size = Vector3.new(0.15, 0.15, 0.05)
 				leftEye.Size = Vector3.new(0.3, 0.3, 0.05)
 				leftEye.Material = Enum.Material.SmoothPlastic
 				leftEye.CanCollide = false
@@ -727,14 +722,13 @@ local function spawnMonster(template: Model, index: number, def, islandName)
 				leftDecal.Face = Enum.NormalId.Front
 				leftDecal.Parent = leftEye
 
-				-- Weld で Body に固定
+				-- ★ 【修正】位置調整を先に、Weld を後に
+				leftEye.Position = targetPart.Position + Vector3.new(-0.35, 0.40, -0.82)
+
 				local leftWeld = Instance.new("WeldConstraint")
 				leftWeld.Part0 = targetPart
 				leftWeld.Part1 = leftEye
 				leftWeld.Parent = leftEye
-
-				-- CFrame で位置調整
-				leftEye.Position = targetPart.Position + Vector3.new(-0.35, 0.40, -0.82)
 
 				-- 右目（同じ処理を繰り返す）
 				local rightEye = Instance.new("Part")
@@ -752,20 +746,16 @@ local function spawnMonster(template: Model, index: number, def, islandName)
 				rightDecal.Face = Enum.NormalId.Front
 				rightDecal.Parent = rightEye
 
+				-- ★ 【修正】位置調整を先に、Weld を後に
+				rightEye.Position = targetPart.Position + Vector3.new(0.35, 0.40, -0.82)
+
 				local rightWeld = Instance.new("WeldConstraint")
 				rightWeld.Part0 = targetPart
 				rightWeld.Part1 = rightEye
 				rightWeld.Parent = rightEye
-
-				rightEye.Position = targetPart.Position + Vector3.new(0.35, 0.40, -0.82)
 			end
 		end
 	end
-	-- === カラー設定＋両目生成 ここまで ===
-
-	-- === 両目の生成 ここまで ===
-
-	-- === カラー＆外見設定ここまで ===
 
 	local hum = m:FindFirstChildOfClass("Humanoid")
 	local hrp = ensureHRP(m)
@@ -776,6 +766,9 @@ local function spawnMonster(template: Model, index: number, def, islandName)
 		return
 	end
 
+	-- ★ 【修正】HipHeight を設定（重要！）
+	hum.HipHeight = 0.2
+
 	m:SetAttribute("IsEnemy", true)
 	m:SetAttribute("MonsterKind", def.Name or "Monster")
 	m:SetAttribute("ChaseDistance", def.ChaseDistance or 60)
@@ -785,26 +778,24 @@ local function spawnMonster(template: Model, index: number, def, islandName)
 	m:SetAttribute("SpawnZone", continentName)
 	m:SetAttribute("SpawnIsland", islandName)
 
-	local speedMin = def.SpeedMin or 0.7
-	local speedMax = def.SpeedMax or 1.3
+	local speedMin = 0.6 -- -10%
+	local speedMax = 1.4 -- +10%
 	local speedMult = speedMin + math.random() * (speedMax - speedMin)
 	hum.WalkSpeed = (def.WalkSpeed or 14) * speedMult
-	hum.HipHeight = 0
-
+	-- hum.HipHeight = 0
+	print(("[SpawnMonster] %s - WalkSpeed: %.2f"):format(m.Name, hum.WalkSpeed))
 	hrp.Anchored = true
 	hrp.CanCollide = false
 	hrp.Transparency = 1
 
 	for _, descendant in ipairs(m:GetDescendants()) do
 		if descendant:IsA("BasePart") and descendant ~= hrp then
-			-- ▼▼▼【ここからが修正箇所】▼▼▼
 			-- ★ 修正：目(Eye)は衝突判定を強制的にOFFにする
 			if descendant.Name == "LeftEye" or descendant.Name == "RightEye" then
 				descendant.CanCollide = false
 			else
 				descendant.CanCollide = true
 			end
-			-- ▲▲▲【ここまでが修正箇所】▲▲▲
 
 			descendant.Anchored = false
 
@@ -845,7 +836,7 @@ local function spawnMonster(template: Model, index: number, def, islandName)
 	task.wait(0.05)
 	hrp.Anchored = false
 
-	-- attachLabel(m, 500) -- ★ ラベル表示を有効化
+	attachLabel(m, 500) -- ラベルを表示
 
 	local aiState = AIState.new(m, def)
 	table.insert(ActiveMonsters, aiState)
