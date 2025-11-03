@@ -1431,6 +1431,7 @@ playHitFlash = function()
 	end
 end
 
+-- (793行目あたり)
 -- キー入力処理
 local function onKeyPress(input, gameProcessed)
 	if not inBattle then
@@ -1440,6 +1441,7 @@ local function onKeyPress(input, gameProcessed)
 		return
 	end
 
+	-- (800行目あたりから)
 	if input.UserInputType == Enum.UserInputType.Keyboard then
 		local keyCode = input.KeyCode
 		local keyString = UserInputService:GetStringForKeyCode(keyCode):lower()
@@ -1457,8 +1459,10 @@ local function onKeyPress(input, gameProcessed)
 					TypingCorrectSound:Play()
 				end
 
+				-- ★★★【重要】ダメージ処理の復活 ★★★
 				-- サーバーにダメージ通知
 				BattleDamageEvent:FireServer(damagePerKey)
+				-- ★★★ ここまで復活させる ★★★
 
 				-- 単語完成チェック
 				if currentIndex > #currentWord then
@@ -1467,11 +1471,15 @@ local function onKeyPress(input, gameProcessed)
 						-- 予知ONなら予約を使う
 						local useNext = (hasPrecog and hasPrecog()) and precogNextWordData or nil
 
+						-- ★ 修正済みの予知ロジック
+						-- 予約は使い切ったので、setNextWord を呼ぶ「前」にクリアする
+						precogNextWordData = nil
+
 						if type(setNextWord) == "function" then
 							setNextWord(useNext)
 						else
-							warn("[BattleUI] setNextWord is nil; fallback to direct update")
-							-- フォールバック（万一のため）
+							warn("[BattleUI] setNextWord が未定義です")
+							-- (フォールバック処理 ... )
 							currentWordData = useNext or selectWord()
 							currentWord = currentWordData.word
 							currentIndex = 1
@@ -1485,8 +1493,7 @@ local function onKeyPress(input, gameProcessed)
 							updateDisplay()
 						end
 
-						-- 予約は使い切ったのでクリア
-						precogNextWordData = nil
+						-- (予知クリアの行は移動したので、ここには不要)
 					end
 				else
 					updateDisplay()

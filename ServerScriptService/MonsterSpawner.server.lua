@@ -836,7 +836,7 @@ local function spawnMonster(template: Model, index: number, def, islandName)
 	task.wait(0.05)
 	hrp.Anchored = false
 
-	attachLabel(m, 500) -- ラベルを表示
+	-- attachLabel(m, 500) -- ラベルを表示
 
 	local aiState = AIState.new(m, def)
 	table.insert(ActiveMonsters, aiState)

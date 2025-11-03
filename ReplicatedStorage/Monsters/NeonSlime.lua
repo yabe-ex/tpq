@@ -51,7 +51,7 @@ return {
 	},
 
 	Bravery = "always_chase", -- or "always_chase" / "always_flee / random"
-	BattleStartDistance = 1,
+	BattleStartDistance = 5,
 	UpdateNearby = 0.2,
 	UpdateFar = 1.0,
 	UpdateNearbyThreshold = 150,
