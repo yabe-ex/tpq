@@ -1237,47 +1237,47 @@ onBattleEnd = function(victory, summary)
 				return table.concat(t, ", ")
 			end
 
-			local panel = Instance.new("Frame")
-			panel.Name = "ResultSummary"
-			panel.Size = UDim2.new(0, 520, 0, 110)
-			panel.Position = UDim2.new(0.5, -260, 0.10, 0) -- ← 上部に配置（中央寄せ）
-			panel.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
-			panel.BackgroundTransparency = 0.1
-			panel.BorderSizePixel = 0
-			panel.ZIndex = 50
-			panel.Parent = battleGui
+			-- local panel = Instance.new("Frame")
+			-- panel.Name = "ResultSummary"
+			-- panel.Size = UDim2.new(0, 520, 0, 110)
+			-- panel.Position = UDim2.new(0.5, -260, 0.10, 0) -- ← 上部に配置（中央寄せ）
+			-- panel.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
+			-- panel.BackgroundTransparency = 0.1
+			-- panel.BorderSizePixel = 0
+			-- panel.ZIndex = 50
+			-- panel.Parent = battleGui
 
-			local corner = Instance.new("UICorner")
-			corner.CornerRadius = UDim.new(0, 10)
-			corner.Parent = panel
+			-- local corner = Instance.new("UICorner")
+			-- corner.CornerRadius = UDim.new(0, 10)
+			-- corner.Parent = panel
 
-			local stroke = Instance.new("UIStroke")
-			stroke.Thickness = 2
-			stroke.Color = Color3.fromRGB(100, 200, 255)
-			stroke.Transparency = 0.2
-			stroke.Parent = panel
+			-- local stroke = Instance.new("UIStroke")
+			-- stroke.Thickness = 2
+			-- stroke.Color = Color3.fromRGB(100, 200, 255)
+			-- stroke.Transparency = 0.2
+			-- stroke.Parent = panel
 
-			local function addLine(text, order)
-				local label = Instance.new("TextLabel")
-				label.BackgroundTransparency = 1
-				label.Size = UDim2.new(1, -24, 0, 30)
-				label.Position = UDim2.new(0, 12, 0, 10 + (order - 1) * 32)
-				label.Font = Enum.Font.GothamBold
-				label.TextSize = 22
-				label.TextXAlignment = Enum.TextXAlignment.Left
-				label.TextColor3 = Color3.fromRGB(230, 240, 255)
-				label.Text = text
-				label.ZIndex = 51
-				label.Parent = panel
-				return label
-			end
+			-- local function addLine(text, order)
+			-- 	local label = Instance.new("TextLabel")
+			-- 	label.BackgroundTransparency = 1
+			-- 	label.Size = UDim2.new(1, -24, 0, 30)
+			-- 	label.Position = UDim2.new(0, 12, 0, 10 + (order - 1) * 32)
+			-- 	label.Font = Enum.Font.GothamBold
+			-- 	label.TextSize = 22
+			-- 	label.TextXAlignment = Enum.TextXAlignment.Left
+			-- 	label.TextColor3 = Color3.fromRGB(230, 240, 255)
+			-- 	label.Text = text
+			-- 	label.ZIndex = 51
+			-- 	label.Parent = panel
+			-- 	return label
+			-- end
 
-			addLine(("経験値: +%d"):format(exp), 1)
-			addLine(("ゴールド: +%d"):format(gold), 2)
-			addLine(("ドロップ: %s"):format(formatDrops(dropsList)), 3)
+			-- addLine(("経験値: +%d"):format(exp), 1)
+			-- addLine(("ゴールド: +%d"):format(gold), 2)
+			-- addLine(("ドロップ: %s"):format(formatDrops(dropsList)), 3)
 
 			-- 2秒キープ → 0.6秒フェードアウト → 破棄
-			task.delay(2.0, function()
+			task.delay(1.0, function()
 				if panel then
 					TweenService:Create(panel, TweenInfo.new(0.6), { BackgroundTransparency = 1 }):Play()
 					TweenService:Create(stroke, TweenInfo.new(0.6), { Transparency = 1 }):Play()
