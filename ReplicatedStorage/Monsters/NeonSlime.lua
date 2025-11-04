@@ -4,9 +4,9 @@ return {
 	RespawnTime = 10,
 
 	-- 【新】バトルステータス
-	HP = 180, -- ライフ
+	HP = 150, -- ライフ
 	Speed = 5, -- 素早さ
-	Attack = 20, -- 攻撃力
+	Attack = 5, -- 攻撃力
 	Defense = 5, -- 守備力
 
 	-- 【新】報酬
@@ -57,7 +57,7 @@ return {
 	UpdateNearbyThreshold = 150,
 
 	WalkSpeed = 10, -- 歩く速さ
-	Brave = 7, -- 勇敢さレベル（0～9）
+	Brave = 4, -- 勇敢さレベル（0～9）
 	VariationRange = 2, -- 個体差の幅
 }
 

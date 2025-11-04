@@ -28,6 +28,19 @@ local Players = game:GetService("Players")
 
 print("[Bootstrap] === ゲーム初期化開始 ===")
 
+-- プレイヤーがゲームに参加したとき
+-- game.Players.PlayerAdded:Connect(function(player)
+-- 	-- キャラクターが生成されたとき
+-- 	player.CharacterAdded:Connect(function(character)
+-- 		-- ServerStorage からアクセサリーを取得
+-- 		local accessoryFolder = game.ServerStorage:WaitForChild("Accessories")
+-- 		local helmet = accessoryFolder:WaitForChild("HelmetAccessory"):Clone()
+
+-- 		-- キャラクターに装着
+-- 		character:AddAccessory(helmet)
+-- 	end)
+-- end)
+
 -- ★ RemoteEventの先行作成（重要：後から作らない）
 local SpawnReadyEvent = ReplicatedStorage:FindFirstChild("SpawnReady")
 if not SpawnReadyEvent then
@@ -117,6 +130,8 @@ local LastLoadedData = {}
 
 -- PlayerStatsの初期化
 PlayerStatsModule.init()
+
+print("[Bootstrap DEBUG] PlayerStatsModule.init() を呼び出しました。") -- ★デバッグ追加
 
 print("[Bootstrap] 街を生成中（非同期）...")
 task.spawn(function()
