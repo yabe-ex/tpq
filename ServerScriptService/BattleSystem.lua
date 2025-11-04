@@ -36,22 +36,45 @@ end
 local LastBattleEndTime = 0
 local BATTLE_COOLDOWN = 0.5
 
--- ★ 攻撃間隔の基準（拮抗=4s、+100→8s、-100→1s）
+-- ★ 【修正】攻撃間隔の基準（対数比率ベース：1秒～12秒、拮抗時6秒）
 local function computeBaseEnemyInterval(playerSpeed: number, enemySpeed: number): number
-	local diff = (playerSpeed or 0) - (enemySpeed or 0)
-	if diff <= 0 then
-		-- diff: -100→0 を 1s→4s に線形マップ
-		return 1 + 0.03 * math.clamp(diff + 100, 0, 100) -- 1～4
+	-- 1. ゼロ除算を避けつつ比率を計算 (最低値10を保証)
+	local pSpeed = math.max(10, playerSpeed or 10)
+	local mSpeed = math.max(10, enemySpeed or 10)
+	local ratio = pSpeed / mSpeed
+
+	-- 2. 対数に変換し、安全のため範囲をクランプ (-2 ～ 2)
+	-- (999/10 = 99.9 → log10(99.9) ≈ 2)
+	-- (10/999 ≈ 0.01 → log10(0.01) ≈ -2)
+
+	-- math.clamp がない環境（もしあれば）のため、max/minで代替
+	local logRatio = math.max(-2, math.min(math.log10(ratio), 2))
+
+	-- 3. 拮抗時(6秒)を基準に間隔を計算
+	local baseInterval = 6.0
+	local finalInterval
+
+	if logRatio > 0 then
+		-- プレイヤー有利（最大12秒へ）
+		-- (12秒 - 6秒) / 2.0 (logRatioの最大値) = 3.0
+		finalInterval = baseInterval + (logRatio * 3.0)
 	else
-		-- diff: 0→+100 を 4s→8s に線形マップ
-		return 4 + 0.04 * math.clamp(diff, 0, 100) -- 4～8
+		-- モンスター有利（最小1秒へ）
+		-- (6秒 - 1秒) / 2.0 (logRatioの最小値の絶対値) = 2.5
+		finalInterval = baseInterval + (logRatio * 2.5)
 	end
+
+	-- 4. 最終的なクランプは applyIntervalModifiers で行う
+	return finalInterval
 end
 
 -- ★ 将来のバフ/デバフ倍率を掛ける（逸脱許容のため緩い最終クランプ）
-local MIN_INTERVAL, MAX_INTERVAL = 0.5, 12
+-- ★【修正】最小間隔を 1.0 に変更
+local MIN_INTERVAL, MAX_INTERVAL = 1.0, 12.0
 local function applyIntervalModifiers(baseInterval: number, multiplier: number?): number
-	return math.clamp(baseInterval * (multiplier or 1), MIN_INTERVAL, MAX_INTERVAL)
+	-- math.clamp がない環境（もしあれば）のため、max/minで代替
+	local val = baseInterval * (multiplier or 1)
+	return math.max(MIN_INTERVAL, math.min(val, MAX_INTERVAL))
 end
 
 -- ★（任意拡張）状態から倍率を集計する入口。現状は1固定。
@@ -90,7 +113,6 @@ local EnemyAttackCycleStartEvent = getOrCreateRemoteEvent("EnemyAttackCycleStart
 local EnemyDamageEvent = getOrCreateRemoteEvent("EnemyDamage")
 local RequestEnemyCycleSyncEvent = getOrCreateRemoteEvent("RequestEnemyCycleSync")
 
-
 print("[BattleSystem] RemoteEvents準備完了")
 
 -- モンスター定義を取得
@@ -99,7 +121,9 @@ local MonstersRegistry = require(ReplicatedStorage:WaitForChild("Monsters"):Wait
 -- プレイヤーのステータスをクライアントに送信
 local function sendStatusUpdate(player: Player)
 	local stats = PlayerStats.getStats(player)
-	if not stats then return end
+	if not stats then
+		return
+	end
 
 	-- PlayerStats.getExpToNext を使う
 	local expToNext = 0
@@ -144,13 +168,13 @@ end
 local function calculateDamage(attackerAttack: number, defenderDefense: number): number
 	-- 基本ダメージ = 攻撃力 * 0.5 - 守備力 * 0.25
 	local baseDamage = attackerAttack * 0.5 - defenderDefense * 0.25
-	baseDamage = math.max(1, baseDamage)  -- 最低1ダメージ
+	baseDamage = math.max(1, baseDamage) -- 最低1ダメージ
 
 	-- ±10%のランダム幅
-	local randomMultiplier = 0.9 + math.random() * 0.2  -- 0.9 ~ 1.1
+	local randomMultiplier = 0.9 + math.random() * 0.2 -- 0.9 ~ 1.1
 	local finalDamage = baseDamage * randomMultiplier
 
-	return math.floor(finalDamage)  -- 整数に丸める
+	return math.floor(finalDamage) -- 整数に丸める
 end
 
 -- 攻撃間隔を計算
@@ -178,7 +202,13 @@ local function enemyAttack(player: Player, battleData)
 
 	-- ダメージ計算
 	local damage = calculateDamage(monsterDef.Attack, playerStats.Defense)
-	print(("[BattleSystem] %s が %s から %d ダメージを受けた"):format(player.Name, battleData.monster.Name, damage))
+	print(
+		("[BattleSystem] %s が %s から %d ダメージを受けた"):format(
+			player.Name,
+			battleData.monster.Name,
+			damage
+		)
+	)
 
 	-- ダメージ反映
 	local isDead = PlayerStats.takeDamage(player, damage)
@@ -205,7 +235,6 @@ local function enemyAttack(player: Player, battleData)
 
 	print(("[BattleSystem] 次の攻撃まで %.1f 秒"):format(attackInterval))
 end
-
 
 -- バトル開始
 function BattleSystem.startBattle(player: Player, monster: Model)
@@ -263,13 +292,23 @@ function BattleSystem.startBattle(player: Player, monster: Model)
 	end
 
 	print(("[BattleSystem] バトル開始: %s vs %s"):format(player.Name, monster.Name))
-	print(("  プレイヤー: HP %d/%d, 素早さ %d, 攻撃 %d, 守備 %d"):format(
-		playerStats.CurrentHP, playerStats.MaxHP,
-		playerStats.Speed, playerStats.Attack, playerStats.Defense
-		))
-	print(("  モンスター: HP %d, 素早さ %d, 攻撃 %d, 守備 %d"):format(
-		monsterDef.HP, monsterDef.Speed, monsterDef.Attack, monsterDef.Defense
-		))
+	print(
+		("  プレイヤー: HP %d/%d, 素早さ %d, 攻撃 %d, 守備 %d"):format(
+			playerStats.CurrentHP,
+			playerStats.MaxHP,
+			playerStats.Speed,
+			playerStats.Attack,
+			playerStats.Defense
+		)
+	)
+	print(
+		("  モンスター: HP %d, 素早さ %d, 攻撃 %d, 守備 %d"):format(
+			monsterDef.HP,
+			monsterDef.Speed,
+			monsterDef.Attack,
+			monsterDef.Defense
+		)
+	)
 
 	-- グローバルバトルフラグをON
 	SharedState.GlobalBattleActive = true
@@ -310,7 +349,7 @@ function BattleSystem.startBattle(player: Player, monster: Model)
 
 	-- プレイヤーの1文字あたりのダメージを計算
 	local damagePerKey = math.floor(playerStats.Attack * 0.8)
-	damagePerKey = math.max(1, damagePerKey)  -- 最低1ダメージ
+	damagePerKey = math.max(1, damagePerKey) -- 最低1ダメージ
 
 	-- 敵の最初の攻撃タイミングを計算
 	local attackInterval = calculateAttackInterval(playerStats.Speed, monsterDef.Speed, player, monsterDef)
@@ -328,7 +367,7 @@ function BattleSystem.startBattle(player: Player, monster: Model)
 		startTime = tick(),
 		originalPlayerSpeed = originalPlayerSpeed,
 		originalJumpPower = originalJumpPower,
-		originalMonsterSpeed = originalMonsterSpeed
+		originalMonsterSpeed = originalMonsterSpeed,
 	}
 
 	-- ★ クライアントにバトル開始を通知（この時点で inBattle = true になる）
@@ -338,7 +377,7 @@ function BattleSystem.startBattle(player: Player, monster: Model)
 		monsterDef.HP,
 		monsterDef.HP,
 		damagePerKey,
-		monsterDef.TypingLevels or {{level = "level_1", weight = 100}},
+		monsterDef.TypingLevels or { { level = "level_1", weight = 100 } },
 		playerStats.CurrentHP,
 		playerStats.MaxHP
 	)
@@ -350,7 +389,9 @@ function BattleSystem.startBattle(player: Player, monster: Model)
 	task.spawn(function()
 		while SharedState.ActiveBattles[player] and not SharedState.EndingBattles[player] do
 			local bd = SharedState.ActiveBattles[player]
-			if not bd then break end
+			if not bd then
+				break
+			end
 
 			if tick() >= bd.nextAttackTime then
 				enemyAttack(player, bd)
@@ -362,7 +403,6 @@ function BattleSystem.startBattle(player: Player, monster: Model)
 	-- ここから追記（関数を閉じる）
 	return true
 end
-
 
 -- プレイヤーからのダメージ処理
 local function onDamageReceived(player, damageAmount)
@@ -410,9 +450,7 @@ end
 
 -- バトル終了
 function BattleSystem.endBattle(player: Player, victory: boolean)
-	print(("[BattleSystem] バトル終了: %s - %s"):format(
-		player.Name, victory and "勝利" or "敗北"
-		))
+	print(("[BattleSystem] バトル終了: %s - %s"):format(player.Name, victory and "勝利" or "敗北"))
 
 	-- 二重終了チェック
 	if SharedState.EndingBattles[player] then
@@ -499,12 +537,10 @@ function BattleSystem.endBattle(player: Player, victory: boolean)
 		print(("[BattleSystem] プレイヤー: %s"):format(player.Name))
 		print(("[BattleSystem] モンスター: %s"):format(battleData.monster.Name))
 
-
 		PlayerStats.addMonstersDefeated(player, 1)
 
 		print(("[BattleSystem] モンスター撃破カウント処理完了"):format())
 		print(("[BattleSystem] ========================================"):format())
-
 
 		-- 少し待ってからステータス更新を送信（念のため）
 		task.wait(0.1)
@@ -563,7 +599,7 @@ function BattleSystem.endBattle(player: Player, victory: boolean)
 		-- 死亡時の選択UIを表示
 		local playerStats = PlayerStats.getStats(player)
 		if playerStats then
-			local reviveCost = math.floor(playerStats.Level * 50)  -- レベル * 50ゴールド
+			local reviveCost = math.floor(playerStats.Level * 50) -- レベル * 50ゴールド
 			print(("[BattleSystem] ========================================"):format())
 			print(("[BattleSystem] 死亡UI表示を送信"):format())
 			print(("[BattleSystem] 所持金: %d G, 復活コスト: %d G"):format(playerStats.Gold, reviveCost))
@@ -610,7 +646,7 @@ function BattleSystem.endBattle(player: Player, victory: boolean)
 		-- 敗北時は戦闘データをクリアするが、終了処理フラグは維持
 		-- （死亡選択UIで選んだ後に解除する）
 		SharedState.ActiveBattles[player] = nil
-		print(("[BattleSystem] 敗北 - 終了処理フラグを維持します（選択まで）"))
+		print("[BattleSystem] 敗北 - 終了処理フラグを維持します（選択まで）")
 	end
 end
 
@@ -647,17 +683,16 @@ function BattleSystem.init()
 
 		-- 経過と残り時間から startedAt を逆算（クライアントのプログレスを滑らかに）
 		local now = tick()
-		local remaining = math.max(0.05, bd.nextAttackTime - now)              -- もうすぐ発動の場合も最低0.05秒
-		local elapsed = math.clamp(intervalSec - remaining, 0, intervalSec)    -- 経過時間をクランプ
+		local remaining = math.max(0.05, bd.nextAttackTime - now) -- もうすぐ発動の場合も最低0.05秒
+		local elapsed = math.clamp(intervalSec - remaining, 0, intervalSec) -- 経過時間をクランプ
 		local startedAt = now - elapsed
 
 		-- クライアントに「今このペースで回ってるよ」を即通知
 		EnemyAttackCycleStartEvent:FireClient(player, {
 			intervalSec = intervalSec,
-			startedAt   = startedAt
+			startedAt = startedAt,
 		})
 	end)
-
 
 	-- 勝利イベント（念のため残しておく）
 	BattleVictoryEvent.OnServerEvent:Connect(function(player)
@@ -681,7 +716,9 @@ function BattleSystem.init()
 		print(("[BattleSystem] %s の終了処理フラグを解除"):format(player.Name))
 
 		local playerStats = PlayerStats.getStats(player)
-		if not playerStats then return end
+		if not playerStats then
+			return
+		end
 
 		-- 死亡フラグを解除
 		local character = player.Character
@@ -765,10 +802,10 @@ function BattleSystem.init()
 				if hrp then
 					local spawnX = townConfig.centerX
 					local spawnZ = townConfig.centerZ
-					local spawnY = townConfig.baseY + 50  -- 高めに設定
-					print(("[BattleSystem] テレポート座標: X=%.0f, Y=%.0f, Z=%.0f"):format(
-						spawnX, spawnY, spawnZ
-						))
+					local spawnY = townConfig.baseY + 50 -- 高めに設定
+					print(
+						("[BattleSystem] テレポート座標: X=%.0f, Y=%.0f, Z=%.0f"):format(spawnX, spawnY, spawnZ)
+					)
 
 					-- テレポート実行
 					hrp.CFrame = CFrame.new(spawnX, spawnY, spawnZ)
@@ -804,7 +841,6 @@ function BattleSystem.init()
 
 			-- ステータス更新
 			sendStatusUpdate(player)
-
 		elseif choice == "revive" then
 			-- ゴールドで復活
 			local reviveCost = math.floor(playerStats.Level * 50)
@@ -839,7 +875,11 @@ function BattleSystem.init()
 
 		local battleData = SharedState.ActiveBattles[player]
 		if not battleData then
-			warn(("[BattleSystem] %s はバトル中ではありません（タイプミス無視）"):format(player.Name))
+			warn(
+				("[BattleSystem] %s はバトル中ではありません（タイプミス無視）"):format(
+					player.Name
+				)
+			)
 			return
 		end
 
@@ -854,7 +894,7 @@ function BattleSystem.init()
 		-- タイプミスダメージ = 敵の通常攻撃の半分
 		local normalDamage = calculateDamage(monsterDef.Attack, playerStats.Defense)
 		local mistakeDamage = math.floor(normalDamage * 0.5)
-		mistakeDamage = math.max(1, mistakeDamage)  -- 最低1ダメージ
+		mistakeDamage = math.max(1, mistakeDamage) -- 最低1ダメージ
 
 		print(("[BattleSystem] %s がタイプミスで %d ダメージ"):format(player.Name, mistakeDamage))
 
@@ -867,7 +907,7 @@ function BattleSystem.init()
 		-- 死亡判定
 		if isDead then
 			print(("[BattleSystem] %s はタイプミスで倒れた！"):format(player.Name))
-			BattleSystem.endBattle(player, false)  -- 敗北
+			BattleSystem.endBattle(player, false) -- 敗北
 		end
 	end)
 
@@ -882,7 +922,11 @@ function BattleSystem.init()
 				local duration = tick() - battleData.startTime
 
 				if duration > 60 then
-					warn(("[BattleSystem] デッドロック検出！ %s のバトルを強制終了"):format(player.Name))
+					warn(
+						("[BattleSystem] デッドロック検出！ %s のバトルを強制終了"):format(
+							player.Name
+						)
+					)
 					BattleSystem.endBattle(player, false)
 				end
 			end

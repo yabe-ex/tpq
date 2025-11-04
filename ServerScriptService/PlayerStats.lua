@@ -28,7 +28,7 @@ local DEFAULT_STATS = {
 	MaxHP = 100,
 	CurrentHP = 100,
 
-	Speed = 10, -- 素早さ
+	Speed = 6, -- 素早さ
 	Attack = 10, -- 攻撃力
 	Defense = 10, -- 守備力
 	MonstersDefeated = 0,
