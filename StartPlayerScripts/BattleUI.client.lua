@@ -1,5 +1,7 @@
 -- StarterPlayer/StarterPlayerScripts/BattleUI.client.lua
 -- タイピングバトルUI制御（クライアント側）
+-- ★ 勝利リザルト表示を復活 ＆ ZIndex修正
+
 local Logger = require(game.ReplicatedStorage.Util.Logger)
 local log = Logger.get("BattleUI") -- ファイル名などをタグに
 
@@ -620,6 +622,8 @@ local function createBattleUI()
 	battleGui.ResetOnSpawn = false
 	battleGui.Enabled = false
 	battleGui.Parent = playerGui
+	-- ★ 修正: DisplayOrder = 0 (StatusUI=10より下)
+	battleGui.DisplayOrder = 0
 
 	-- 中央の縦スタック（幅を統一）
 	local centerStack = Instance.new("Frame")
@@ -629,7 +633,8 @@ local function createBattleUI()
 	centerStack.Size = UDim2.new(0, STACK_WIDTH, 0, WORD_H + HP_BAR_H + PROG_H + (STACK_PAD * 2))
 	centerStack.BackgroundTransparency = 1
 	centerStack.BorderSizePixel = 0
-	centerStack.ZIndex = 1
+	-- ★ 修正: ZIndex = 2 (暗転(1)より手前)
+	centerStack.ZIndex = 2
 	centerStack.Parent = battleGui
 
 	local stackLayout = Instance.new("UIListLayout")
@@ -648,6 +653,7 @@ local function createBattleUI()
 	darkenFrame.BackgroundColor3 = Color3.new(0, 0, 0)
 	darkenFrame.BackgroundTransparency = 1
 	darkenFrame.BorderSizePixel = 0
+	-- ★ ZIndex = 1 (StatusUI(10)より下、centerStack(2)より下)
 	darkenFrame.ZIndex = 1
 	darkenFrame.Parent = battleGui
 
@@ -1237,44 +1243,45 @@ onBattleEnd = function(victory, summary)
 				return table.concat(t, ", ")
 			end
 
-			-- local panel = Instance.new("Frame")
-			-- panel.Name = "ResultSummary"
-			-- panel.Size = UDim2.new(0, 520, 0, 110)
-			-- panel.Position = UDim2.new(0.5, -260, 0.10, 0) -- ← 上部に配置（中央寄せ）
-			-- panel.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
-			-- panel.BackgroundTransparency = 0.1
-			-- panel.BorderSizePixel = 0
-			-- panel.ZIndex = 50
-			-- panel.Parent = battleGui
+			-- ★★★ 修正: 以下のブロックのコメントアウトを解除 ★★★
+			local panel = Instance.new("Frame")
+			panel.Name = "ResultSummary"
+			panel.Size = UDim2.new(0, 520, 0, 110)
+			panel.Position = UDim2.new(0.5, -260, 0.10, 0) -- ← 上部に配置（中央寄せ）
+			panel.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
+			panel.BackgroundTransparency = 0.1
+			panel.BorderSizePixel = 0
+			panel.ZIndex = 50
+			panel.Parent = battleGui
 
-			-- local corner = Instance.new("UICorner")
-			-- corner.CornerRadius = UDim.new(0, 10)
-			-- corner.Parent = panel
+			local corner = Instance.new("UICorner")
+			corner.CornerRadius = UDim.new(0, 10)
+			corner.Parent = panel
 
-			-- local stroke = Instance.new("UIStroke")
-			-- stroke.Thickness = 2
-			-- stroke.Color = Color3.fromRGB(100, 200, 255)
-			-- stroke.Transparency = 0.2
-			-- stroke.Parent = panel
+			local stroke = Instance.new("UIStroke")
+			stroke.Thickness = 2
+			stroke.Color = Color3.fromRGB(100, 200, 255)
+			stroke.Transparency = 0.2
+			stroke.Parent = panel
 
-			-- local function addLine(text, order)
-			-- 	local label = Instance.new("TextLabel")
-			-- 	label.BackgroundTransparency = 1
-			-- 	label.Size = UDim2.new(1, -24, 0, 30)
-			-- 	label.Position = UDim2.new(0, 12, 0, 10 + (order - 1) * 32)
-			-- 	label.Font = Enum.Font.GothamBold
-			-- 	label.TextSize = 22
-			-- 	label.TextXAlignment = Enum.TextXAlignment.Left
-			-- 	label.TextColor3 = Color3.fromRGB(230, 240, 255)
-			-- 	label.Text = text
-			-- 	label.ZIndex = 51
-			-- 	label.Parent = panel
-			-- 	return label
-			-- end
+			local function addLine(text, order)
+				local label = Instance.new("TextLabel")
+				label.BackgroundTransparency = 1
+				label.Size = UDim2.new(1, -24, 0, 30)
+				label.Position = UDim2.new(0, 12, 0, 10 + (order - 1) * 32)
+				label.Font = Enum.Font.GothamBold
+				label.TextSize = 22
+				label.TextXAlignment = Enum.TextXAlignment.Left
+				label.TextColor3 = Color3.fromRGB(230, 240, 255)
+				label.Text = text
+				label.ZIndex = 51
+				label.Parent = panel
+				return label
+			end
 
-			-- addLine(("経験値: +%d"):format(exp), 1)
-			-- addLine(("ゴールド: +%d"):format(gold), 2)
-			-- addLine(("ドロップ: %s"):format(formatDrops(dropsList)), 3)
+			addLine(("経験値: +%d"):format(exp), 1)
+			addLine(("ゴールド: +%d"):format(gold), 2)
+			addLine(("ドロップ: %s"):format(formatDrops(dropsList)), 3)
 
 			-- 2秒キープ → 0.6秒フェードアウト → 破棄
 			task.delay(1.0, function()
@@ -1295,6 +1302,7 @@ onBattleEnd = function(victory, summary)
 					end
 				end
 			end)
+			-- ★★★ 修正: ここまでコメントアウト解除 ★★★
 		end
 
 		-- プレイヤーの入力ブロックを解除
