@@ -1,5 +1,5 @@
 -- StarterPlayer/StarterPlayerScripts/StatusUI.client.lua
--- ★ バトル状態に応じて、表示位置・サイズ・内容を切り替えるバージョン
+-- ★ バトル連動版 v4 (通常時ZIndex修正、バトル時フォントサイズ縮小)
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -8,7 +8,7 @@ local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
-print("[StatusUI] 初期化中... (バトル連動版)")
+print("[StatusUI] 初期化中... (バトル連動版 v4)")
 
 -- 現在のステータス
 local currentHP = 100
@@ -40,7 +40,7 @@ local function getHPColor(hpPercent)
 	end
 end
 
--- 表示を更新（★ 常に全ステータスを更新対象にする）
+-- 表示を更新
 local function updateDisplay()
 	if hpBarFill and hpLabel then
 		local hpPercent = currentHP / currentMaxHP
@@ -56,40 +56,45 @@ local function updateDisplay()
 	end
 
 	if levelLabel then
-		levelLabel.Text = string.format("Lv.%d", currentLevel)
+		-- (非表示)
 	end
 
 	if expLabel then
-		expLabel.Text = string.format("EXP: %d / %d", currentExp, currentExpToNext)
+		-- ★ 修正: EXPの表示形式変更
+		expLabel.Text = string.format("%d EXP", currentExp)
 	end
 
 	if goldLabel then
-		goldLabel.Text = string.format("💰 %d G", currentGold)
+		-- ★ 修正: ゴールドの表示形式変更 (絵文字削除)
+		goldLabel.Text = string.format("%d G", currentGold)
 	end
 end
 
--- ★ UI作成（元の状態＝右下、全表示 で作成）
+-- ★ UI作成 (新しいデフォルトレイアウト)
 local function createStatusUI()
 	statusGui = Instance.new("ScreenGui")
 	statusGui.Name = "StatusUI"
 	statusGui.ResetOnSpawn = false
 	statusGui.Parent = playerGui
+	-- ★ 修正: DisplayOrder を 10 に設定 (BattleUI(0) や BattleUIの暗転(1)より手前)
+	statusGui.DisplayOrder = 10
 
-	-- 背景フレーム (★ 元の右下の設定)
+	-- 背景フレーム (★ 新しいデフォルト: 右下、小型)
 	backgroundFrame = Instance.new("Frame")
 	backgroundFrame.Name = "StatusBackground"
-	backgroundFrame.Size = UDim2.new(0, 250, 0, 120)
-	backgroundFrame.Position = UDim2.new(1, -270, 1, -140) -- ★ 右下 (デフォルト)
+	backgroundFrame.Size = UDim2.new(0, 250, 0, 75) -- ★ 修正: 高さを 75 に縮小
+	backgroundFrame.Position = UDim2.new(1, -270, 1, -95) -- ★ 修正: Y位置を調整
 	backgroundFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
 	backgroundFrame.BackgroundTransparency = 0.3
 	backgroundFrame.BorderSizePixel = 0
 	backgroundFrame.Parent = statusGui
+	backgroundFrame.ZIndex = 11 -- ★ 修正: BattleUIのZIndex(1)より高く
 
 	local corner = Instance.new("UICorner")
 	corner.CornerRadius = UDim.new(0, 10)
 	corner.Parent = backgroundFrame
 
-	-- レベル表示 (★ 復活)
+	-- レベル表示 (★ 非表示に)
 	levelLabel = Instance.new("TextLabel")
 	levelLabel.Name = "LevelLabel"
 	levelLabel.Size = UDim2.new(0, 80, 0, 25)
@@ -102,14 +107,16 @@ local function createStatusUI()
 	levelLabel.Text = "Lv.1"
 	levelLabel.TextXAlignment = Enum.TextXAlignment.Left
 	levelLabel.Parent = backgroundFrame
+	levelLabel.Visible = false -- ★ 修正: 非表示
 
-	-- HPバー背景 (★ 元の小さい設定)
+	-- HPバー背景 (★ 新しいデフォルト: 上部)
 	hpBarBackground = Instance.new("Frame")
 	hpBarBackground.Name = "HPBarBackground"
 	hpBarBackground.Size = UDim2.new(1, -20, 0, 20)
-	hpBarBackground.Position = UDim2.new(0, 10, 0, 40)
+	hpBarBackground.Position = UDim2.new(0, 10, 0, 10) -- ★ 修正: 位置を上部に
 	hpBarBackground.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 	hpBarBackground.BorderSizePixel = 0
+	hpBarBackground.ZIndex = 12 -- ★ 修正: ZIndex
 	hpBarBackground.Parent = backgroundFrame
 
 	local hpBarCorner = Instance.new("UICorner")
@@ -123,13 +130,14 @@ local function createStatusUI()
 	hpBarFill.Position = UDim2.new(0, 0, 0, 0)
 	hpBarFill.BackgroundColor3 = Color3.fromRGB(46, 204, 113)
 	hpBarFill.BorderSizePixel = 0
+	hpBarFill.ZIndex = 13 -- ★ 修正: ZIndex
 	hpBarFill.Parent = hpBarBackground
 
 	local hpFillCorner = Instance.new("UICorner")
 	hpFillCorner.CornerRadius = UDim.new(0, 5)
 	hpFillCorner.Parent = hpBarFill
 
-	-- HPテキスト (★ 元の小さい設定)
+	-- HPテキスト
 	hpLabel = Instance.new("TextLabel")
 	hpLabel.Name = "HPLabel"
 	hpLabel.Size = UDim2.new(1, 0, 1, 0)
@@ -138,42 +146,45 @@ local function createStatusUI()
 	hpLabel.TextColor3 = Color3.new(1, 1, 1)
 	hpLabel.TextStrokeTransparency = 0.5
 	hpLabel.Font = Enum.Font.GothamBold
-	hpLabel.TextSize = 14 -- ★ 元のサイズ
+	hpLabel.TextSize = 14 -- デフォルトサイズ
 	hpLabel.Text = "100 / 100"
+	hpLabel.ZIndex = 14 -- ★ 修正: ZIndex
 	hpLabel.Parent = hpBarBackground
 
-	-- 経験値表示 (★ 復活)
+	-- 経験値表示 (★ 新しいデフォルト: 下部左)
 	expLabel = Instance.new("TextLabel")
 	expLabel.Name = "ExpLabel"
-	expLabel.Size = UDim2.new(1, -20, 0, 18)
-	expLabel.Position = UDim2.new(0, 10, 0, 65)
+	expLabel.Size = UDim2.new(0.5, -15, 0, 25) -- ★ 修正: サイズ
+	expLabel.Position = UDim2.new(0, 10, 0, 40) -- ★ 修正: 位置
 	expLabel.BackgroundTransparency = 1
 	expLabel.TextColor3 = Color3.fromRGB(150, 200, 255)
 	expLabel.TextStrokeTransparency = 0.7
 	expLabel.Font = Enum.Font.Gotham
-	expLabel.TextSize = 14
-	expLabel.Text = "EXP: 0 / 100"
+	expLabel.TextSize = 18 -- ★ 修正: フォントサイズ
+	expLabel.Text = "0 EXP"
 	expLabel.TextXAlignment = Enum.TextXAlignment.Left
+	expLabel.ZIndex = 12 -- ★ 修正: ZIndexを追加 (hpBarBackgroundと同じ)
 	expLabel.Parent = backgroundFrame
 
-	-- ゴールド表示 (★ 復活)
+	-- ゴールド表示 (★ 新しいデフォルト: 下部右)
 	goldLabel = Instance.new("TextLabel")
 	goldLabel.Name = "GoldLabel"
-	goldLabel.Size = UDim2.new(1, -20, 0, 18)
-	goldLabel.Position = UDim2.new(0, 10, 0, 88)
+	goldLabel.Size = UDim2.new(0.5, -15, 0, 25) -- ★ 修正: サイズ
+	goldLabel.Position = UDim2.new(0.5, 5, 0, 40) -- ★ 修正: 位置
 	goldLabel.BackgroundTransparency = 1
 	goldLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
 	goldLabel.TextStrokeTransparency = 0.7
 	goldLabel.Font = Enum.Font.GothamBold
-	goldLabel.TextSize = 14
-	goldLabel.Text = "💰 0 G"
-	goldLabel.TextXAlignment = Enum.TextXAlignment.Left
+	goldLabel.TextSize = 18 -- ★ 修正: フォントサイズ
+	goldLabel.Text = "0 G"
+	goldLabel.TextXAlignment = Enum.TextXAlignment.Right -- ★ 修正: 右揃え
+	goldLabel.ZIndex = 12 -- ★ 修正: ZIndexを追加 (hpBarBackgroundと同じ)
 	goldLabel.Parent = backgroundFrame
 
-	print("[StatusUI] UI作成完了 (デフォルト状態)")
+	print("[StatusUI] UI作成完了 (新デフォルトレイアウト)")
 end
 
--- ★ ステータス更新イベント
+-- ステータス更新イベント
 local function onStatusUpdate(hp, maxHP, level, exp, expToNext, gold)
 	currentHP = hp or currentHP
 	currentMaxHP = maxHP or currentMaxHP
@@ -184,7 +195,7 @@ local function onStatusUpdate(hp, maxHP, level, exp, expToNext, gold)
 	updateDisplay()
 end
 
--- ★ バトル表示に切り替え
+-- バトル表示に切り替え
 local function switchToBattleView()
 	if not backgroundFrame or isInBattle then
 		return
@@ -194,9 +205,8 @@ local function switchToBattleView()
 
 	local scaleFactor = 3
 	local originalWidth = 250
-	local originalHeight = 120
 	local scaledWidth = originalWidth * scaleFactor
-	local scaledHeight = originalHeight * scaleFactor
+	local scaledHeight = 120 * scaleFactor -- 元の高さを基準に
 
 	-- 1. 背景フレームを移動・リサイズ
 	backgroundFrame:TweenSizeAndPosition(
@@ -221,7 +231,7 @@ local function switchToBattleView()
 	hpBarBackground.BackgroundTransparency = 0.5 -- バー背景は半透明
 
 	-- 3. HPテキストを拡大
-	hpLabel.TextSize = 14 * scaleFactor
+	hpLabel.TextSize = 14 * scaleFactor -- ★ 修正: 14*3 = 42 (大きすぎた54から戻す)
 
 	-- 4. 他の要素を非表示
 	levelLabel.Visible = false
@@ -229,18 +239,18 @@ local function switchToBattleView()
 	goldLabel.Visible = false
 end
 
--- ★ 通常表示に切り替え
+-- 通常表示に切り替え
 local function switchToDefaultView()
 	if not backgroundFrame or not isInBattle then
 		return
 	end
 	isInBattle = false
-	print("[StatusUI] 通常表示に切り替え (右下、小)")
+	print("[StatusUI] 通常表示に切り替え (右下、新レイアウト)")
 
 	-- 1. 背景フレームを移動・リサイズ
 	backgroundFrame:TweenSizeAndPosition(
-		UDim2.new(0, 250, 0, 120), -- 元のサイズ
-		UDim2.new(1, -270, 1, -140), -- 元の位置 (右下)
+		UDim2.new(0, 250, 0, 75), -- ★ 修正: 新しい高さ
+		UDim2.new(1, -270, 1, -95), -- ★ 修正: 新しいY位置
 		Enum.EasingDirection.Out,
 		Enum.EasingStyle.Quad,
 		0.3,
@@ -251,7 +261,7 @@ local function switchToDefaultView()
 	-- 2. HPバーを移動・リサイズ
 	hpBarBackground:TweenSizeAndPosition(
 		UDim2.new(1, -20, 0, 20), -- 元のサイズ
-		UDim2.new(0, 10, 0, 40), -- 元の位置
+		UDim2.new(0, 10, 0, 10), -- ★ 修正: 新しいY位置
 		Enum.EasingDirection.Out,
 		Enum.EasingStyle.Quad,
 		0.3,
@@ -262,19 +272,19 @@ local function switchToDefaultView()
 	-- 3. HPテキストを縮小
 	hpLabel.TextSize = 14
 
-	-- 4. 他の要素を表示
-	levelLabel.Visible = true
+	-- 4. 他の要素を表示/非表示
+	levelLabel.Visible = false -- ★ 修正: 非表示のまま
 	expLabel.Visible = true
 	goldLabel.Visible = true
 end
 
 -- 初期化
 createStatusUI()
-updateDisplay() -- 念のため初回更新
+updateDisplay() -- 初回更新
 
 print("[StatusUI] RemoteEventを待機中...")
 
--- ★ イベントリスナーを追加
+-- バトルイベントリスナー
 task.spawn(function()
 	local BattleStartEvent = ReplicatedStorage:WaitForChild("BattleStart", 10)
 	local BattleEndEvent = ReplicatedStorage:WaitForChild("BattleEnd", 10)
@@ -288,9 +298,9 @@ task.spawn(function()
 
 	if BattleEndEvent then
 		BattleEndEvent.OnClientEvent:Connect(switchToDefaultView)
-		print("[StatusUI] BattleEndイベント接続完了")
+		print("[StatusUI] BattleEndEvent イベント接続完了")
 	else
-		warn("[StatusUI] BattleEndEventが見つかりません")
+		warn("[StatusUI] BattleEndEvent イベントが見つかりません")
 	end
 end)
 
