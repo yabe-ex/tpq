@@ -10,8 +10,9 @@ return {
 	Defense = 5, -- 守備力
 
 	-- 【新】報酬
-	Experience = 10, -- 倒した時に得られる経験値
-	Gold = 15, -- 倒した時に得られるゴールド
+
+	Experience = 10, -- 得られる経験値
+	Gold = 15, -- 得られるゴールド
 
 	-- タイピングレベル（重み付き）
 	TypingLevels = {
