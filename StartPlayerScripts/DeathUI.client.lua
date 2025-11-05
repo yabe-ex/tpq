@@ -62,7 +62,7 @@ local function showDeathUI(currentGold, reviveCost)
 	choiceFrame.BackgroundTransparency = 0.2
 	choiceFrame.BorderSizePixel = 0
 	choiceFrame.ZIndex = 201
-	choiceFrame.Parent = deathGui
+	-- choiceFrame.Parent = deathGui
 
 	-- 角を丸くする
 	local corner = Instance.new("UICorner")
@@ -78,7 +78,7 @@ local function showDeathUI(currentGold, reviveCost)
 	descText.TextStrokeTransparency = 0.5
 	descText.Font = Enum.Font.Gotham
 	descText.TextSize = 18
-	descText.Text = "敗北しました。どうしますか？"
+	descText.Text = "敗北しました。"
 	descText.TextWrapped = true
 	descText.ZIndex = 202
 	descText.Parent = choiceFrame
@@ -94,7 +94,7 @@ local function showDeathUI(currentGold, reviveCost)
 	returnButton.Text = "🏠 街に戻る"
 	returnButton.TextColor3 = Color3.new(1, 1, 1)
 	returnButton.ZIndex = 202
-	returnButton.Parent = choiceFrame
+	-- returnButton.Parent = choiceFrame
 
 	-- ボタンの角を丸くする
 	local returnCorner = Instance.new("UICorner")
@@ -110,7 +110,7 @@ local function showDeathUI(currentGold, reviveCost)
 	reviveButton.TextSize = 20
 	reviveButton.TextColor3 = Color3.new(1, 1, 1)
 	reviveButton.ZIndex = 202
-	reviveButton.Parent = choiceFrame
+	-- reviveButton.Parent = choiceFrame
 
 	-- ボタンの角を丸くする
 	local reviveCorner = Instance.new("UICorner")

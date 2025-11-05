@@ -10,7 +10,7 @@ local StarterGui = game:GetService("StarterGui")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
-print("[UIToggleManager] 初期化開始 (4段階トグル版)")
+print("[UIToggleManager] 初期化開始 (4段階トグル版 v3)")
 
 -- 非表示対象の UI リスト
 local UIElements = {

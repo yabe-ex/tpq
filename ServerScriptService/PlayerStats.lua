@@ -30,7 +30,7 @@ local DEFAULT_STATS = {
 
 	Speed = 6, -- 素早さ
 	Attack = 10, -- 攻撃力
-	Defense = 10, -- 守備力
+	Defense = 12, -- 守備力
 	MonstersDefeated = 0,
 
 	MonsterCounts = {}, -- モンスターカウント追加
