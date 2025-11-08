@@ -32,16 +32,16 @@ return {
 
 	-- ★修正: 北海道、四国、九州へのポータルを追加
 	portals = {
-		{
-			name = "Town_to_Hokkaido",
-			toZone = "ContinentHokkaido",
-			islandName = "StartTown",
-			offsetX = 0,
-			offsetZ = -50,
-			size = Vector3.new(8, 12, 8),
-			color = Color3.fromRGB(200, 200, 255),
-			label = "→ Hokkaido",
-		},
+		-- {
+		-- 	name = "Town_to_Hokkaido",
+		-- 	toZone = "ContinentHokkaido",
+		-- 	islandName = "StartTown",
+		-- 	offsetX = 0,
+		-- 	offsetZ = -50,
+		-- 	size = Vector3.new(8, 12, 8),
+		-- 	color = Color3.fromRGB(200, 200, 255),
+		-- 	label = "→ Hokkaido",
+		-- },
 		-- {
 		-- 	name = "Town_to_Shikoku", -- ★新規ポータル
 		-- 	toZone = "ContinentShikoku",
@@ -52,15 +52,25 @@ return {
 		-- 	color = Color3.fromRGB(150, 255, 150),
 		-- 	label = "→ Shikoku",
 		-- },
+		-- {
+		-- 	name = "Town_to_Kyushu", -- ★新規ポータル
+		-- 	toZone = "ContinentKyushu",
+		-- 	islandName = "Town_SE",
+		-- 	offsetX = 0,
+		-- 	offsetZ = 0,
+		-- 	size = Vector3.new(8, 12, 8),
+		-- 	color = Color3.fromRGB(255, 100, 100),
+		-- 	label = "→ Kyushu",
+		-- },
 		{
-			name = "Town_to_Kyushu", -- ★新規ポータル
-			toZone = "ContinentKyushu",
-			islandName = "Town_SE",
-			offsetX = 0,
-			offsetZ = 0,
-			size = Vector3.new(8, 12, 8),
-			color = Color3.fromRGB(255, 100, 100),
-			label = "→ Kyushu",
+			name = "Portal_02",
+			-- zone = "Hokkaido_C",
+			position = { 10083.2, 57.2, 50.4 }, -- ★絶対座標
+			toZone = "Kyusyu_C",
+			model = "crystal1",
+			size = 1.5,
+			label = "→ 九州へ",
+			rotate = true,
 		},
 	},
 

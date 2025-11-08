@@ -106,6 +106,19 @@ return {
 		"Kyusyu_102",
 		"Kyusyu_103",
 	},
+	--544.5, 31.2, 323.3
+	portals = {
+		{
+			name = "Portal_01",
+			islandName = "Hokkaido_01",
+			toZone = "Hokkaido_C",
+			position = { 447.4, 30.4, 680.8 }, -- ★絶対座標
+			model = "crystal1",
+			size = 1.5,
+			label = "→ 北海道へ",
+			rotate = true,
+		},
+	},
 	paths = {},
 	fieldObjects = {},
 	BGM = "",

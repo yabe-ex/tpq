@@ -33,7 +33,7 @@ return {
 	-- },
 	SpawnLocations = {
 		{
-			islandName = "Hokkaido_02",
+			islandName = "Kyusyu_02",
 			count = 10,
 			radiusPercent = 50, -- 島のサイズの25%範囲内
 		},
