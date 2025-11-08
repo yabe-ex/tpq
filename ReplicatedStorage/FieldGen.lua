@@ -577,10 +577,13 @@ function FieldGen.placeFieldObjects(continentName: string?, objects: { any }, pl
 		return f
 	end
 
-	local function setAnchoredAll(inst: Instance, anchored: boolean)
+	local function setAnchoredAll(inst: Instance, anchored: boolean, canCollide: boolean?)
 		for _, d in ipairs(inst:GetDescendants()) do
 			if d:IsA("BasePart") then
 				d.Anchored = anchored
+				if canCollide ~= nil then
+					d.CanCollide = canCollide
+				end
 			end
 		end
 	end
@@ -803,9 +806,20 @@ function FieldGen.placeFieldObjects(continentName: string?, objects: { any }, pl
 				continue
 			end
 
-			-- print(("[FieldGen] [%d-%d] ✓ cloneオブジェクト取得成功"):format(objIdx, placeIdx))
+			-- print("[FieldGen] [%d-%d] ✓ cloneオブジェクト取得成功"):format(objIdx, placeIdx))
 
-			setAnchoredAll(clone, true)
+			-- ★ anchored と canCollide の設定（デフォルトは両方true）
+			local shouldAnchor = obj_config.anchored
+			if shouldAnchor == nil then
+				shouldAnchor = true -- デフォルト: true
+			end
+
+			local shouldCollide = obj_config.canCollide
+			if shouldCollide == nil then
+				shouldCollide = true -- デフォルト: true
+			end
+
+			setAnchoredAll(clone, shouldAnchor, shouldCollide)
 
 			local scale = tonumber(placeInfo.size) or 1
 			if clone:IsA("Model") then
@@ -981,6 +995,15 @@ function FieldGen.placeFieldObjects(continentName: string?, objects: { any }, pl
 					-- 		interaction.chestId
 					-- 	)
 					-- )
+				end
+			end
+
+			-- ★★★ 最終確認: 配置直前にもう一度Anchored/CanCollideを確実に設定 ★★★
+			-- （ScaleToやPivotToなどの処理後にリセットされる可能性があるため）
+			for _, d in ipairs(clone:GetDescendants()) do
+				if d:IsA("BasePart") then
+					d.Anchored = shouldAnchor
+					d.CanCollide = shouldCollide
 				end
 			end
 

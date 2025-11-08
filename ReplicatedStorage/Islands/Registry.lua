@@ -8,15 +8,16 @@ local allIslands = {}
 -- 島定義のリスト
 local islandModules = {
 	IslandsFolder:WaitForChild("Town"), -- 【修正】Town.lua を参照
-	IslandsFolder:WaitForChild("HokkaidoIslands"),
-	IslandsFolder:WaitForChild("ShikokuIslands"),
-	IslandsFolder:WaitForChild("KyushuIslands"),
-	IslandsFolder:WaitForChild("Snowland"),
-	IslandsFolder:WaitForChild("BananaLand"),
-	IslandsFolder:WaitForChild("Vendant"),
-	IslandsFolder:WaitForChild("Vendant2"),
-	IslandsFolder:WaitForChild("Vendant3"),
+	-- IslandsFolder:WaitForChild("HokkaidoIslands"),
+	-- IslandsFolder:WaitForChild("ShikokuIslands"),
+	-- IslandsFolder:WaitForChild("KyushuIslands"),
+	-- IslandsFolder:WaitForChild("Snowland"),
+	-- IslandsFolder:WaitForChild("BananaLand"),
+	-- IslandsFolder:WaitForChild("Vendant"),
+	-- IslandsFolder:WaitForChild("Vendant2"),
+	-- IslandsFolder:WaitForChild("Vendant3"),
 	IslandsFolder:WaitForChild("Hokkaido"),
+	IslandsFolder:WaitForChild("Kyusyu"),
 }
 
 -- 各モジュールを読み込み

@@ -328,14 +328,54 @@ return {
 				rotationRandomness = true,
 			},
 		},
-		-- {
-		-- 	model = "oTower",
-		-- 	position = { 754.6, 32.1, 466.3 },
-		-- 	size = 1.5,
-		-- 	groundOffset = -8,
-
-		-- },
+		{
+			model = "crystal1",
+			position = { 900.1, 31.4, 482.8 }, --81050950253995
+			rotation = { 0, 4, 0 },
+			groundOffset = -0.5,
+			size = 1,
+			anchored = true,
+			canCollide = false,
+		},
+		--81050950253995
 	},
+	-- portals = {
+	-- 	{
+	-- 		name = "Kyusyu_01",
+	-- 		toZone = "Kyusyu_C",
+	-- 		islandName = "Hokkaido_59",
+	-- 		offsetX = 0,
+	-- 		offsetZ = -50,
+	-- 		size = Vector3.new(8, 12, 8),
+	-- 		color = Color3.fromRGB(200, 200, 255),
+	-- 		label = "→ 桜島へ",
+	-- 	},
+	-- },
+	portals = {
+		{
+			name = "CrystalPortal_01",
+			toZone = "Kyusyu_C",
+			islandName = "Hokkaido_10",
+			model = "crystal1", -- ★メッシュパートを指定
+			offsetX = 0,
+			offsetZ = -50,
+			size = 3.5, -- 1.5倍のサイズ
+			rotation = { 0, 45, 0 }, -- Y軸45度回転
+			rotate = true, -- 回転させる
+			label = "→ 九州へ",
+		},
+	},
+	-- portals = {
+	-- 	{
+	-- 		name = "Portal_02",
+	-- 		toZone = "Kyusyu_C",
+	-- 		position = { 309.0, 31.3, 559.7 }, -- ★絶対座標
+	-- 		model = "crystal1",
+	-- 		size = 1.5,
+	-- 		label = "→ 九州へ",
+	-- 	},
+	-- },
+
 	BGM = "",
 	BGMVolume = 0.2,
 }

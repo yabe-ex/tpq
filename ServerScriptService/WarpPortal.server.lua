@@ -87,8 +87,19 @@ local function createPortal(config, fromZone)
 		return nil
 	end
 
-	local portalSize = config.size or Vector3.new(8, 12, 8)
-	local portalHeight = portalSize.Y
+	-- ★ sizeの型判定（Vector3 or 数値）
+	local portalSize
+	local portalHeight
+
+	if config.model then
+		-- メッシュパートの場合、sizeはスケール倍率（数値）
+		-- portalHeightは推定値を使用
+		portalHeight = 10 -- デフォルトの高さ推定値
+	else
+		-- デフォルトPartポータルの場合、sizeはVector3
+		portalSize = config.size or Vector3.new(8, 12, 8)
+		portalHeight = portalSize.Y
+	end
 
 	local portalX = zoneConfig.centerX + (config.offsetX or 0)
 	local portalZ = zoneConfig.centerZ + (config.offsetZ or 0)
@@ -124,31 +135,116 @@ local function createPortal(config, fromZone)
 
 	local portalPosition = Vector3.new(portalX, portalY, portalZ)
 
-	local portal = Instance.new("Part")
-	portal.Name = config.name
-	portal.Size = portalSize
-	portal.Position = portalPosition
-	portal.Anchored = true
-	portal.CanCollide = false
-	portal.Transparency = 0.3
-	portal.Color = config.color or Color3.fromRGB(255, 255, 255)
-	portal.Material = Enum.Material.Neon
+	local portal
+
+	-- ★ modelが指定されている場合はメッシュパートを使用
+	if config.model then
+		local ServerStorage = game:GetService("ServerStorage")
+		local templatesRoot = ServerStorage:FindFirstChild("FieldObjects")
+
+		if not templatesRoot then
+			warn("[WarpPortal] ServerStorage/FieldObjects が見つかりません")
+			return nil
+		end
+
+		local template = templatesRoot:FindFirstChild(config.model)
+		if not template then
+			warn(
+				("[WarpPortal] モデル '%s' が ServerStorage/FieldObjects に見つかりません"):format(
+					config.model
+				)
+			)
+			return nil
+		end
+
+		portal = template:Clone()
+		portal.Name = config.name
+
+		-- メッシュパートの全てのPartをAnchoredに設定
+		for _, part in ipairs(portal:GetDescendants()) do
+			if part:IsA("BasePart") then
+				part.Anchored = true
+				part.CanCollide = false
+			end
+		end
+
+		-- スケール設定
+		local scale = config.size or 1
+		if portal:IsA("Model") and scale ~= 1 then
+			pcall(function()
+				portal:ScaleTo(scale)
+			end)
+		end
+
+		-- 位置と回転の設定
+		local rotation = config.rotation or { 0, 0, 0 }
+		local rotCFrame =
+			CFrame.Angles(math.rad(rotation[1] or 0), math.rad(rotation[2] or 0), math.rad(rotation[3] or 0))
+
+		if portal:IsA("Model") then
+			portal:PivotTo(CFrame.new(portalPosition) * rotCFrame)
+		elseif portal:IsA("BasePart") then
+			portal.CFrame = CFrame.new(portalPosition) * rotCFrame
+		end
+
+		print(
+			("[WarpPortal] メッシュパートポータルを作成: %s (モデル: %s)"):format(
+				config.name,
+				config.model
+			)
+		)
+	else
+		-- ★ 従来のデフォルトPartポータル
+		portal = Instance.new("Part")
+		portal.Name = config.name
+		portal.Size = portalSize
+		portal.Position = portalPosition
+		portal.Anchored = true
+		portal.CanCollide = false
+		portal.Transparency = 0.3
+		portal.Color = config.color or Color3.fromRGB(255, 255, 255)
+		portal.Material = Enum.Material.Neon
+	end
 
 	portal:SetAttribute("FromZone", fromZone)
 	portal:SetAttribute("ToZone", config.toZone)
 
-	local bodyAngularVelocity = Instance.new("BodyAngularVelocity")
-	bodyAngularVelocity.AngularVelocity = Vector3.new(0, 2, 0)
-	bodyAngularVelocity.MaxTorque = Vector3.new(0, math.huge, 0)
-	bodyAngularVelocity.P = 1000
-	bodyAngularVelocity.Parent = portal
+	-- ★ 回転エフェクト（メッシュパートの場合はオプション）
+	if not config.model then
+		-- デフォルトPartポータルのみ回転
+		local bodyAngularVelocity = Instance.new("BodyAngularVelocity")
+		bodyAngularVelocity.AngularVelocity = Vector3.new(0, 2, 0)
+		bodyAngularVelocity.MaxTorque = Vector3.new(0, math.huge, 0)
+		bodyAngularVelocity.P = 1000
+		bodyAngularVelocity.Parent = portal
+	elseif config.rotate then
+		-- メッシュパートでも回転させたい場合
+		local primaryPart = portal:IsA("Model") and portal.PrimaryPart or portal
+		if primaryPart and primaryPart:IsA("BasePart") then
+			local bodyAngularVelocity = Instance.new("BodyAngularVelocity")
+			bodyAngularVelocity.AngularVelocity = Vector3.new(0, config.rotateSpeed or 2, 0)
+			bodyAngularVelocity.MaxTorque = Vector3.new(0, math.huge, 0)
+			bodyAngularVelocity.P = 1000
+			bodyAngularVelocity.Parent = primaryPart
+		end
+	end
+
+	-- ★ ラベル（Billboard）
+	local labelParent = portal
+	if portal:IsA("Model") then
+		-- Modelの場合はPrimaryPartにラベルを追加
+		if not portal.PrimaryPart then
+			portal.PrimaryPart = portal:FindFirstChildWhichIsA("BasePart")
+		end
+		labelParent = portal.PrimaryPart or portal
+	end
 
 	local billboard = Instance.new("BillboardGui")
 	billboard.Name = "PortalLabel"
 	billboard.Size = UDim2.new(0, 200, 0, 50)
-	billboard.StudsOffset = Vector3.new(0, 7, 0)
+	billboard.StudsOffset = config.labelOffset or Vector3.new(0, 7, 0)
 	billboard.AlwaysOnTop = true
-	billboard.Parent = portal
+	billboard.Parent = labelParent
 
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.new(1, 0, 1, 0)
@@ -169,105 +265,121 @@ local function createPortal(config, fromZone)
 
 	portal.Parent = worldFolder
 
-	-- ポータルタッチ処理
-	portal.Touched:Connect(function(hit)
-		local character = hit.Parent
-		if not character then
-			return
-		end
-
-		local player = Players:GetPlayerFromCharacter(character)
-		if not player then
-			return
-		end
-
-		-- ワープ中チェック
-		if warpingPlayers[player.UserId] then
-			return
-		end
-
-		-- バトル中チェック
-		if BattleSystem and BattleSystem.isInBattle and BattleSystem.isInBattle(player) then
-			return
-		end
-
-		local actualFromZone = portal:GetAttribute("FromZone")
-		local currentZone = ZoneManager.GetPlayerZone(player)
-
-		if currentZone ~= actualFromZone then
-			if not currentZone then
-				ZoneManager.PlayerZones[player] = actualFromZone
-			else
+	-- ★ ポータルタッチ処理（メッシュパートの場合は全Partに設定）
+	local function setupTouchHandler(part)
+		part.Touched:Connect(function(hit)
+			local character = hit.Parent
+			if not character then
 				return
 			end
-		end
 
-		print(("[WarpPortal] %s が %s に入りました"):format(player.Name, config.name))
-
-		-- ワープ中フラグを設定
-		warpingPlayers[player.UserId] = true
-		character:SetAttribute("IsWarping", true)
-
-		-- キャラクターを透明化
-		local originalTransparencies = {}
-		for _, part in ipairs(character:GetDescendants()) do
-			if part:IsA("BasePart") then
-				originalTransparencies[part] = part.Transparency
-				part.Transparency = 1
-			elseif part:IsA("Decal") or part:IsA("Texture") then
-				originalTransparencies[part] = part.Transparency
-				part.Transparency = 1
+			local player = Players:GetPlayerFromCharacter(character)
+			if not player then
+				return
 			end
-		end
 
-		-- プレイヤーレベルを取得
-		local stats = PlayerStatsModule.getStats(player)
-		local playerLevel = stats and stats.Level or 1
-		print(("[WarpPortal] プレイヤー %s のレベル: %d"):format(player.Name, playerLevel))
+			-- ワープ中チェック
+			if warpingPlayers[player.UserId] then
+				return
+			end
 
-		-- レベル付きでローディング開始を通知
-		warpEvent:FireClient(player, "StartLoading", config.toZone, playerLevel)
-		task.wait(0.5)
+			-- バトル中チェック
+			if BattleSystem and BattleSystem.isInBattle and BattleSystem.isInBattle(player) then
+				return
+			end
 
-		-- バトルシステムリセット
-		if BattleSystem and BattleSystem.resetAllBattles then
-			BattleSystem.resetAllBattles()
-		end
+			local actualFromZone = portal:GetAttribute("FromZone")
+			local currentZone = ZoneManager.GetPlayerZone(player)
 
-		-- ワープ実行
-		local success = ZoneManager.WarpPlayerToZone(player, config.toZone)
-
-		if success then
-			-- 透明度を戻す
-			for part, transparency in pairs(originalTransparencies) do
-				if part and part.Parent then
-					part.Transparency = transparency
+			if currentZone ~= actualFromZone then
+				if not currentZone then
+					ZoneManager.PlayerZones[player] = actualFromZone
+				else
+					return
 				end
 			end
 
-			-- 新しいゾーンのポータルを生成
-			createPortalsForZone(config.toZone)
+			print(("[WarpPortal] %s が %s に入りました"):format(player.Name, config.name))
 
-			-- 新しいゾーンのモンスターを生成
-			local TO_IS_TOWN = config.toZone == "ContinentTown"
-			if not TO_IS_TOWN and _G.SpawnMonstersForZone then
-				_G.SpawnMonstersForZone(config.toZone)
+			-- ワープ中フラグを設定
+			warpingPlayers[player.UserId] = true
+			character:SetAttribute("IsWarping", true)
+
+			-- キャラクターを透明化
+			local originalTransparencies = {}
+			for _, part in ipairs(character:GetDescendants()) do
+				if part:IsA("BasePart") then
+					originalTransparencies[part] = part.Transparency
+					part.Transparency = 1
+				elseif part:IsA("Decal") or part:IsA("Texture") then
+					originalTransparencies[part] = part.Transparency
+					part.Transparency = 1
+				end
 			end
 
-			task.wait(0.5)
-			warpEvent:FireClient(player, "EndLoading", config.toZone, playerLevel)
-		else
-			warn(("[WarpPortal] %s のワープに失敗"):format(player.Name))
-			warpEvent:FireClient(player, "EndLoading", config.toZone, playerLevel)
-		end
+			-- プレイヤーレベルを取得
+			local stats = PlayerStatsModule.getStats(player)
+			local playerLevel = stats and stats.Level or 1
+			print(("[WarpPortal] プレイヤー %s のレベル: %d"):format(player.Name, playerLevel))
 
-		-- ワープ中フラグを解除
-		task.wait(1)
-		warpingPlayers[player.UserId] = nil
-		if character and character.Parent then
-			character:SetAttribute("IsWarping", false)
+			-- レベル付きでローディング開始を通知
+			warpEvent:FireClient(player, "StartLoading", config.toZone, playerLevel)
+			task.wait(0.5)
+
+			-- バトルシステムリセット
+			if BattleSystem and BattleSystem.resetAllBattles then
+				BattleSystem.resetAllBattles()
+			end
+
+			-- ワープ実行
+			local success = ZoneManager.WarpPlayerToZone(player, config.toZone)
+
+			if success then
+				-- 透明度を戻す
+				for part, transparency in pairs(originalTransparencies) do
+					if part and part.Parent then
+						part.Transparency = transparency
+					end
+				end
+
+				-- 新しいゾーンのポータルを生成
+				createPortalsForZone(config.toZone)
+
+				-- 新しいゾーンのモンスターを生成
+				local TO_IS_TOWN = config.toZone == "ContinentTown"
+				if not TO_IS_TOWN and _G.SpawnMonstersForZone then
+					_G.SpawnMonstersForZone(config.toZone)
+				end
+
+				task.wait(0.5)
+				warpEvent:FireClient(player, "EndLoading", config.toZone, playerLevel)
+			else
+				warn(("[WarpPortal] %s のワープに失敗"):format(player.Name))
+				warpEvent:FireClient(player, "EndLoading", config.toZone, playerLevel)
+			end
+
+			-- ワープ中フラグを解除
+			task.wait(1)
+			warpingPlayers[player.UserId] = nil
+			if character and character.Parent then
+				character:SetAttribute("IsWarping", false)
+			end
+		end)
+	end
+
+	-- ★ メッシュパートの場合は全PartにTouchedイベントを設定
+	if config.model and portal:IsA("Model") then
+		for _, part in ipairs(portal:GetDescendants()) do
+			if part:IsA("BasePart") then
+				setupTouchHandler(part)
+			end
 		end
-	end)
+	else
+		-- デフォルトPartポータルまたは単一Partの場合
+		if portal:IsA("BasePart") then
+			setupTouchHandler(portal)
+		end
+	end
 
 	return portal
 end
