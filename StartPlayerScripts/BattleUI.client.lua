@@ -1372,6 +1372,49 @@ onBattleEnd = function(victory, summary)
 	end
 
 	log.debug("[BattleUI] === バトル終了完了 ===")
+
+	-- ★ バトル終了後にステータスUIを最新レイアウトに戻す
+	local statusGui = playerGui:FindFirstChild("StatusUI")
+	if statusGui then
+		local backgroundFrame = statusGui:FindFirstChild("StatusBackground")
+		local levelLabel = statusGui:FindFirstChild("LevelLabel")
+		local goldLabel = statusGui:FindFirstChild("GoldLabel")
+		local expLabel = statusGui:FindFirstChild("ExpLabel")
+		local hpBarBackground = statusGui:FindFirstChild("HPBarBackground")
+
+		-- 右下レイアウトに戻す
+		if backgroundFrame then
+			backgroundFrame.Position = UDim2.new(1, -270, 1, -95)
+			backgroundFrame.Size = UDim2.new(0, 300, 0, 90)
+		end
+
+		-- 各要素の可視化・再配置（createStatusUI準拠）
+		if levelLabel then
+			levelLabel.Visible = true
+			levelLabel.Position = UDim2.new(0, 10, 0, 5)
+			levelLabel.TextSize = 18
+		end
+
+		if goldLabel then
+			goldLabel.Visible = true
+			goldLabel.Position = UDim2.new(1, -10, 0, 5)
+			goldLabel.TextXAlignment = Enum.TextXAlignment.Right
+		end
+
+		if expLabel then
+			expLabel.Visible = true
+			expLabel.Position = UDim2.new(1, -10, 0, 30)
+			expLabel.TextXAlignment = Enum.TextXAlignment.Right
+		end
+
+		if hpBarBackground then
+			hpBarBackground.Visible = true
+			hpBarBackground.Position = UDim2.new(0, 10, 1, -25)
+			hpBarBackground.Size = UDim2.new(1, -20, 0, 20)
+		end
+
+		print("[BattleUI] StatusUI layout restored after battle end.")
+	end
 end
 
 -- HP更新処理（敵）

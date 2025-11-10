@@ -59,11 +59,23 @@ return {
 			name = "Portal_02",
 			islandName = "Kyusyu_01",
 			toZone = "Kyusyu_C",
-			position = { 10029.4, 56.9, 57.5 }, -- ★絶対座標
+			position = { 10029.4, 57.5, 57.5 }, -- ★絶対座標
 			model = "crystal1",
 			size = 1.5,
 			label = "→ 九州へ",
+			snapToGround = true,
 			rotate = true,
+		},
+		{
+			name = "Portal_Terrain",
+			isTerrain = true, -- Terrainモード
+			position = { 10028.4, 59.5, 52.5 }, -- 現在ポータルの設置位置
+			targetPosition = { 574.1, 5381.9, -770.1 }, -- ワープ先のTerrain座標（★新フィールド）
+			model = "crystal1",
+			size = 1.5,
+			label = "→ 大地へ",
+			rotate = true,
+			snapToGround = true,
 		},
 	},
 

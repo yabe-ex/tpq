@@ -40,148 +40,165 @@ local function getHPColor(hpPercent)
 	end
 end
 
--- 表示を更新
 local function updateDisplay()
 	if hpBarFill and hpLabel then
 		local hpPercent = currentHP / currentMaxHP
 
+		-- HPバーの長さをTweenで滑らかに変更
 		local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 		local tween = TweenService:Create(hpBarFill, tweenInfo, {
 			Size = UDim2.new(hpPercent, 0, 1, 0),
 		})
 		tween:Play()
 
-		hpBarFill.BackgroundColor3 = getHPColor(hpPercent)
+		-- ★ 追加: HPバーの色をダメージに応じて動的に変更（Tweenで滑らかに）
+		local colorTween = TweenService:Create(
+			hpBarFill,
+			TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+			{ BackgroundColor3 = getHPColor(hpPercent) }
+		)
+		colorTween:Play()
+
+		-- HPテキスト更新
 		hpLabel.Text = string.format("%d / %d", currentHP, currentMaxHP)
 	end
 
 	if levelLabel then
-		-- (非表示)
+		-- (非表示または別処理で更新する)
 	end
 
 	if expLabel then
-		-- ★ 修正: EXPの表示形式変更
-		expLabel.Text = string.format("%d EXP", currentExp)
+		-- EXPの表示形式「現在 / 必要EXP EXP」
+		local exp = currentExp or 0
+		local toNext = currentExpToNext or 0
+		expLabel.Text = string.format("%d / %d EXP", exp, toNext)
 	end
 
 	if goldLabel then
-		-- ★ 修正: ゴールドの表示形式変更 (絵文字削除)
-		goldLabel.Text = string.format("%d G", currentGold)
+		-- ゴールドのフォーマット（3桁区切り対応）
+		local formattedGold = tostring(currentGold or 0):reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", "")
+		goldLabel.Text = string.format("%s G", formattedGold)
 	end
 end
 
--- ★ UI作成 (新しいデフォルトレイアウト)
+-- ★ UI作成 (Lv左上・Gold右上・EXP右下・HPバー下段)
 local function createStatusUI()
 	statusGui = Instance.new("ScreenGui")
 	statusGui.Name = "StatusUI"
 	statusGui.ResetOnSpawn = false
 	statusGui.Parent = playerGui
-	-- ★ 修正: DisplayOrder を 10 に設定 (BattleUI(0) や BattleUIの暗転(1)より手前)
 	statusGui.DisplayOrder = 10
 
-	-- 背景フレーム (★ 新しいデフォルト: 右下、小型)
+	-- 背景フレーム
 	backgroundFrame = Instance.new("Frame")
 	backgroundFrame.Name = "StatusBackground"
-	backgroundFrame.Size = UDim2.new(0, 250, 0, 75) -- ★ 修正: 高さを 75 に縮小
-	backgroundFrame.Position = UDim2.new(1, -270, 1, -95) -- ★ 修正: Y位置を調整
-	backgroundFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-	backgroundFrame.BackgroundTransparency = 0.3
+	backgroundFrame.Size = UDim2.new(0, 300, 0, 90)
+	backgroundFrame.Position = UDim2.new(1, -320, 1, -95)
+	backgroundFrame.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
 	backgroundFrame.BorderSizePixel = 0
+	backgroundFrame.ZIndex = 11
 	backgroundFrame.Parent = statusGui
-	backgroundFrame.ZIndex = 11 -- ★ 修正: BattleUIのZIndex(1)より高く
 
 	local corner = Instance.new("UICorner")
 	corner.CornerRadius = UDim.new(0, 10)
 	corner.Parent = backgroundFrame
 
-	-- レベル表示 (★ 非表示に)
+	-- === 左上：レベルボックス ===
+	local levelBox = Instance.new("Frame")
+	levelBox.Name = "LevelBox"
+	levelBox.Size = UDim2.new(0, 65, 0, 45)
+	levelBox.Position = UDim2.new(0, 10, 0, 8)
+	levelBox.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	levelBox.BorderSizePixel = 0
+	levelBox.ZIndex = 12
+	levelBox.Parent = backgroundFrame
+
+	local levelCorner = Instance.new("UICorner")
+	levelCorner.CornerRadius = UDim.new(0, 8)
+	levelCorner.Parent = levelBox
+
 	levelLabel = Instance.new("TextLabel")
 	levelLabel.Name = "LevelLabel"
-	levelLabel.Size = UDim2.new(0, 80, 0, 25)
-	levelLabel.Position = UDim2.new(0, 10, 0, 10)
+	levelLabel.Size = UDim2.new(1, 0, 1, 0)
 	levelLabel.BackgroundTransparency = 1
-	levelLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+	levelLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 	levelLabel.TextStrokeTransparency = 0.5
 	levelLabel.Font = Enum.Font.GothamBold
-	levelLabel.TextSize = 20
-	levelLabel.Text = "Lv.1"
-	levelLabel.TextXAlignment = Enum.TextXAlignment.Left
-	levelLabel.Parent = backgroundFrame
-	levelLabel.Visible = false -- ★ 修正: 非表示
+	levelLabel.TextScaled = true
+	levelLabel.Text = "Lv.10"
+	levelLabel.ZIndex = 13
+	levelLabel.Parent = levelBox
+	levelLabel.TextSize = 18 -- ★ 少し小さめ
 
-	-- HPバー背景 (★ 新しいデフォルト: 上部)
+	-- === 右上：ゴールド ===
+	goldLabel = Instance.new("TextLabel")
+	goldLabel.Name = "GoldLabel"
+	goldLabel.Size = UDim2.new(0, 180, 0, 25)
+	goldLabel.Position = UDim2.new(1, -190, 0, 6) -- ★ 少し上げる (10→6)
+	goldLabel.BackgroundTransparency = 1
+	goldLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+	goldLabel.TextStrokeTransparency = 0.5
+	goldLabel.Font = Enum.Font.GothamBold
+	goldLabel.TextSize = 20
+	goldLabel.Text = "1,234,567 G"
+	goldLabel.TextXAlignment = Enum.TextXAlignment.Right
+	goldLabel.ZIndex = 12
+	goldLabel.Parent = backgroundFrame
+
+	-- === 右下：経験値 ===
+	expLabel = Instance.new("TextLabel")
+	expLabel.Name = "ExpLabel"
+	expLabel.Size = UDim2.new(0, 200, 0, 25)
+	expLabel.Position = UDim2.new(1, -210, 0, 33) -- ★ さらに少し上げる (38→33)
+	expLabel.BackgroundTransparency = 1
+	expLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+	expLabel.TextStrokeTransparency = 0.5
+	expLabel.Font = Enum.Font.GothamBold -- ★ 統一
+	expLabel.TextSize = 19
+	expLabel.Text = "10 / 100 EXP" -- ★ 表示形式変更
+	expLabel.TextXAlignment = Enum.TextXAlignment.Right
+	expLabel.ZIndex = 12
+	expLabel.Parent = backgroundFrame
+
+	-- === 下段：HPバー ===
 	hpBarBackground = Instance.new("Frame")
 	hpBarBackground.Name = "HPBarBackground"
-	hpBarBackground.Size = UDim2.new(1, -20, 0, 20)
-	hpBarBackground.Position = UDim2.new(0, 10, 0, 10) -- ★ 修正: 位置を上部に
+	hpBarBackground.Size = UDim2.new(1, -20, 0, 18)
+	hpBarBackground.Position = UDim2.new(0, 10, 1, -25)
 	hpBarBackground.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 	hpBarBackground.BorderSizePixel = 0
-	hpBarBackground.ZIndex = 12 -- ★ 修正: ZIndex
+	hpBarBackground.ZIndex = 12
 	hpBarBackground.Parent = backgroundFrame
 
 	local hpBarCorner = Instance.new("UICorner")
-	hpBarCorner.CornerRadius = UDim.new(0, 5)
+	hpBarCorner.CornerRadius = UDim.new(0, 4)
 	hpBarCorner.Parent = hpBarBackground
 
-	-- HPバー（塗りつぶし）
 	hpBarFill = Instance.new("Frame")
 	hpBarFill.Name = "HPBarFill"
 	hpBarFill.Size = UDim2.new(1, 0, 1, 0)
-	hpBarFill.Position = UDim2.new(0, 0, 0, 0)
-	hpBarFill.BackgroundColor3 = Color3.fromRGB(46, 204, 113)
+	hpBarFill.BackgroundColor3 = Color3.fromRGB(30, 220, 30)
 	hpBarFill.BorderSizePixel = 0
-	hpBarFill.ZIndex = 13 -- ★ 修正: ZIndex
+	hpBarFill.ZIndex = 13
 	hpBarFill.Parent = hpBarBackground
 
 	local hpFillCorner = Instance.new("UICorner")
-	hpFillCorner.CornerRadius = UDim.new(0, 5)
+	hpFillCorner.CornerRadius = UDim.new(0, 4)
 	hpFillCorner.Parent = hpBarFill
 
-	-- HPテキスト
 	hpLabel = Instance.new("TextLabel")
 	hpLabel.Name = "HPLabel"
 	hpLabel.Size = UDim2.new(1, 0, 1, 0)
-	hpLabel.Position = UDim2.new(0, 0, 0, 0)
 	hpLabel.BackgroundTransparency = 1
 	hpLabel.TextColor3 = Color3.new(1, 1, 1)
 	hpLabel.TextStrokeTransparency = 0.5
 	hpLabel.Font = Enum.Font.GothamBold
-	hpLabel.TextSize = 14 -- デフォルトサイズ
+	hpLabel.TextSize = 14
 	hpLabel.Text = "100 / 100"
-	hpLabel.ZIndex = 14 -- ★ 修正: ZIndex
+	hpLabel.ZIndex = 14
 	hpLabel.Parent = hpBarBackground
 
-	-- 経験値表示 (★ 新しいデフォルト: 下部左)
-	expLabel = Instance.new("TextLabel")
-	expLabel.Name = "ExpLabel"
-	expLabel.Size = UDim2.new(0.5, -15, 0, 25) -- ★ 修正: サイズ
-	expLabel.Position = UDim2.new(0, 10, 0, 40) -- ★ 修正: 位置
-	expLabel.BackgroundTransparency = 1
-	expLabel.TextColor3 = Color3.fromRGB(150, 200, 255)
-	expLabel.TextStrokeTransparency = 0.7
-	expLabel.Font = Enum.Font.Gotham
-	expLabel.TextSize = 18 -- ★ 修正: フォントサイズ
-	expLabel.Text = "0 EXP"
-	expLabel.TextXAlignment = Enum.TextXAlignment.Left
-	expLabel.ZIndex = 12 -- ★ 修正: ZIndexを追加 (hpBarBackgroundと同じ)
-	expLabel.Parent = backgroundFrame
-
-	-- ゴールド表示 (★ 新しいデフォルト: 下部右)
-	goldLabel = Instance.new("TextLabel")
-	goldLabel.Name = "GoldLabel"
-	goldLabel.Size = UDim2.new(0.5, -15, 0, 25) -- ★ 修正: サイズ
-	goldLabel.Position = UDim2.new(0.5, 5, 0, 40) -- ★ 修正: 位置
-	goldLabel.BackgroundTransparency = 1
-	goldLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
-	goldLabel.TextStrokeTransparency = 0.7
-	goldLabel.Font = Enum.Font.GothamBold
-	goldLabel.TextSize = 18 -- ★ 修正: フォントサイズ
-	goldLabel.Text = "0 G"
-	goldLabel.TextXAlignment = Enum.TextXAlignment.Right -- ★ 修正: 右揃え
-	goldLabel.ZIndex = 12 -- ★ 修正: ZIndexを追加 (hpBarBackgroundと同じ)
-	goldLabel.Parent = backgroundFrame
-
-	print("[StatusUI] UI作成完了 (新デフォルトレイアウト)")
+	print("[StatusUI] UI作成完了 (EXP書式変更＋位置微調整)")
 end
 
 -- ステータス更新イベント
@@ -195,87 +212,157 @@ local function onStatusUpdate(hp, maxHP, level, exp, expToNext, gold)
 	updateDisplay()
 end
 
--- バトル表示に切り替え
+-- バトル表示に切り替え（中央に大きなHPバーを表示）
 local function switchToBattleView()
-	if not backgroundFrame or isInBattle then
+	if not backgroundFrame then
 		return
 	end
-	isInBattle = true
-	print("[StatusUI] バトル表示に切り替え (中央下、大)")
+	print("[StatusUI] バトル表示に切り替え (中央HPバー)")
 
-	local scaleFactor = 3
-	local originalWidth = 250
-	local scaledWidth = originalWidth * scaleFactor
-	local scaledHeight = 120 * scaleFactor -- 元の高さを基準に
-
-	-- 1. 背景フレームを移動・リサイズ
+	-- === 背景フレームを「画面中央より少し下」に移動＆拡大 ===
 	backgroundFrame:TweenSizeAndPosition(
-		UDim2.new(0, scaledWidth, 0, scaledHeight),
-		UDim2.new(0.5, -scaledWidth / 2, 1, -scaledHeight - 10), -- 中央下
+		UDim2.new(0, 700, 0, 90),
+		UDim2.new(0.5, -350, 0.7, -45),
 		Enum.EasingDirection.Out,
 		Enum.EasingStyle.Quad,
-		0.3,
+		0.4,
 		true
 	)
-	backgroundFrame.BackgroundTransparency = 1 -- 背景は透明
+	backgroundFrame.BackgroundTransparency = 1
 
-	-- 2. HPバーを移動・リサイズ
-	hpBarBackground:TweenSizeAndPosition(
-		UDim2.new(1, -20 * scaleFactor, 0, 20 * scaleFactor), -- 3倍サイズ
-		UDim2.new(0.5, -(scaledWidth - 20 * scaleFactor) / 2, 0.5, -(20 * scaleFactor) / 2), -- 背景内の中央
-		Enum.EasingDirection.Out,
-		Enum.EasingStyle.Quad,
-		0.3,
-		true
-	)
-	hpBarBackground.BackgroundTransparency = 0.5 -- バー背景は半透明
+	-- 子要素を取得
+	local hpBarBackground = backgroundFrame:FindFirstChild("HPBarBackground")
+	local hpBarFill = hpBarBackground and hpBarBackground:FindFirstChild("HPBarFill")
+	local hpLabel = hpBarBackground and hpBarBackground:FindFirstChild("HPLabel")
+	local levelBox = backgroundFrame:FindFirstChild("LevelBox")
+	local levelLabel = levelBox and levelBox:FindFirstChild("LevelLabel")
+	local goldLabel = backgroundFrame:FindFirstChild("GoldLabel")
+	local expLabel = backgroundFrame:FindFirstChild("ExpLabel")
 
-	-- 3. HPテキストを拡大
-	hpLabel.TextSize = 14 * scaleFactor -- ★ 修正: 14*3 = 42 (大きすぎた54から戻す)
+	-- === HPバー（太く・中央寄せ） ===
+	if hpBarBackground then
+		hpBarBackground:TweenSizeAndPosition(
+			UDim2.new(1, -40, 0, 40), -- 高さを約2倍に
+			UDim2.new(0, 20, 0.5, -20), -- フレーム内で中央配置
+			Enum.EasingDirection.Out,
+			Enum.EasingStyle.Quad,
+			0.3,
+			true
+		)
+		hpBarBackground.Visible = true
+	end
 
-	-- 4. 他の要素を非表示
-	levelLabel.Visible = false
-	expLabel.Visible = false
-	goldLabel.Visible = false
+	if hpLabel then
+		hpLabel.Visible = true
+		hpLabel.TextSize = 20
+		hpLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+		hpLabel.TextStrokeTransparency = 0.4
+	end
+
+	if hpBarFill then
+		hpBarFill.Visible = true
+	end
+
+	-- === 他のUI要素は非表示 ===
+	if levelBox then
+		levelBox.Visible = false
+	end
+	if goldLabel then
+		goldLabel.Visible = false
+	end
+	if expLabel then
+		expLabel.Visible = false
+	end
 end
 
--- 通常表示に切り替え
+-- 通常表示に切り替え（バトル終了後に呼ばれる）
 local function switchToDefaultView()
-	if not backgroundFrame or not isInBattle then
+	if not backgroundFrame then
 		return
 	end
-	isInBattle = false
-	print("[StatusUI] 通常表示に切り替え (右下、新レイアウト)")
+	print("[StatusUI] 通常表示に切り替え (右下レイアウト)")
+	backgroundFrame.BackgroundTransparency = 0.3
 
-	-- 1. 背景フレームを移動・リサイズ
+	-- 背景フレームを右下に戻す
 	backgroundFrame:TweenSizeAndPosition(
-		UDim2.new(0, 250, 0, 75), -- ★ 修正: 新しい高さ
-		UDim2.new(1, -270, 1, -95), -- ★ 修正: 新しいY位置
+		UDim2.new(0, 300, 0, 90),
+		UDim2.new(1, -320, 1, -95),
 		Enum.EasingDirection.Out,
 		Enum.EasingStyle.Quad,
-		0.3,
+		0.4,
 		true
 	)
-	backgroundFrame.BackgroundTransparency = 0.3 -- 背景を戻す
+	backgroundFrame.BackgroundTransparency = 0.3
+	backgroundFrame.Visible = true
 
-	-- 2. HPバーを移動・リサイズ
-	hpBarBackground:TweenSizeAndPosition(
-		UDim2.new(1, -20, 0, 20), -- 元のサイズ
-		UDim2.new(0, 10, 0, 10), -- ★ 修正: 新しいY位置
-		Enum.EasingDirection.Out,
-		Enum.EasingStyle.Quad,
-		0.3,
-		true
-	)
-	hpBarBackground.BackgroundTransparency = 0 -- バー背景を不透明に
+	-- === 子要素取得 ===
+	local levelBox = backgroundFrame:FindFirstChild("LevelBox")
+	local levelLabel = levelBox and levelBox:FindFirstChild("LevelLabel")
+	local goldLabel = backgroundFrame:FindFirstChild("GoldLabel")
+	local expLabel = backgroundFrame:FindFirstChild("ExpLabel")
+	local hpBarBackground = backgroundFrame:FindFirstChild("HPBarBackground")
+	local hpBarFill = hpBarBackground and hpBarBackground:FindFirstChild("HPBarFill")
+	local hpLabel = hpBarBackground and hpBarBackground:FindFirstChild("HPLabel")
 
-	-- 3. HPテキストを縮小
-	hpLabel.TextSize = 14
+	-- === レベルボックス ===
+	if levelBox then
+		levelBox.Visible = true
+		levelBox.Position = UDim2.new(0, 10, 0, 8)
+		levelBox.Size = UDim2.new(0, 65, 0, 45)
+		levelBox.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	end
 
-	-- 4. 他の要素を表示/非表示
-	levelLabel.Visible = false -- ★ 修正: 非表示のまま
-	expLabel.Visible = true
-	goldLabel.Visible = true
+	if levelLabel then
+		levelLabel.Visible = true
+		levelLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+		levelLabel.TextStrokeTransparency = 0.5
+		levelLabel.Font = Enum.Font.GothamBold
+		levelLabel.TextSize = 18
+	end
+
+	-- === ゴールド（右上） ===
+	if goldLabel then
+		goldLabel.Visible = true
+		goldLabel.Position = UDim2.new(1, -190, 0, 6)
+		goldLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+		goldLabel.Font = Enum.Font.GothamBold
+		goldLabel.TextSize = 20
+		goldLabel.TextStrokeTransparency = 0.5
+		goldLabel.TextXAlignment = Enum.TextXAlignment.Right
+	end
+
+	-- === 経験値（右下） ===
+	if expLabel then
+		expLabel.Visible = true
+		expLabel.Position = UDim2.new(1, -210, 0, 33)
+		expLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+		expLabel.Font = Enum.Font.GothamBold
+		expLabel.TextSize = 19
+		expLabel.TextStrokeTransparency = 0.5
+		expLabel.TextXAlignment = Enum.TextXAlignment.Right
+	end
+
+	-- === HPバー（下段） ===
+	if hpBarBackground then
+		hpBarBackground.Visible = true
+		hpBarBackground.Position = UDim2.new(0, 10, 1, -25)
+		hpBarBackground.Size = UDim2.new(1, -20, 0, 18)
+		hpBarBackground.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+		hpBarBackground.BorderSizePixel = 0
+	end
+
+	if hpBarFill then
+		hpBarFill.Visible = true
+		hpBarFill.BackgroundColor3 = Color3.fromRGB(30, 220, 30)
+	end
+
+	if hpLabel then
+		hpLabel.Visible = true
+		hpLabel.TextColor3 = Color3.new(1, 1, 1)
+		hpLabel.TextStrokeTransparency = 0.5
+		hpLabel.Font = Enum.Font.GothamBold
+		hpLabel.TextSize = 14
+	end
 end
 
 -- 初期化

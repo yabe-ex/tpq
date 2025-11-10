@@ -381,9 +381,11 @@ return {
 			toZone = "Kyusyu_C",
 			position = { 812.6, 31.4, 509.1 }, -- ★絶対座標
 			model = "crystal1",
-			size = 1.5,
+			size = 3,
 			label = "→ 九州へ",
 			rotate = true,
+			snapToGround = true,
+			heightOffset = 1,
 		},
 	},
 	BGM = "",

@@ -1,5 +1,5 @@
--- StarterPlayer/StarterPlayerScripts/LevelUpUI.client.lua
--- レベルアップ演出
+-- LevelUpUI.client.lua
+-- 右上下部に表示されるレベルアップ演出（濃いグレー背景＋整列テキスト＋レベル表示中央寄せ）
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -8,182 +8,148 @@ local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
+local levelUpGui
+
 print("[LevelUpUI] 初期化中...")
 
--- UI要素
-local levelUpGui = nil
-
--- レベルアップ演出を表示
 local function showLevelUp(level, maxHP, speed, attack, defense)
-	print(("[LevelUpUI] ========================================"):format())
-	print(("[LevelUpUI] レベルアップ演出開始！"):format())
-	print(("[LevelUpUI] Lv.%d, HP:%d, 素早さ:%d, 攻撃:%d, 守備:%d"):format(
-		level, maxHP, speed, attack, defense
-		))
-	print(("[LevelUpUI] ========================================"):format())
-
-	-- 既存のGUIを削除
 	if levelUpGui then
 		levelUpGui:Destroy()
 	end
 
-	-- 新しいGUIを作成
 	levelUpGui = Instance.new("ScreenGui")
 	levelUpGui.Name = "LevelUpUI"
 	levelUpGui.ResetOnSpawn = false
+	levelUpGui.IgnoreGuiInset = true
+	levelUpGui.DisplayOrder = 20
 	levelUpGui.Parent = playerGui
 
-	-- 背景（暗い）
-	local background = Instance.new("Frame")
-	background.Size = UDim2.fromScale(1, 1)
-	background.Position = UDim2.fromScale(0, 0)
-	background.BackgroundColor3 = Color3.new(0, 0, 0)
-	background.BackgroundTransparency = 1
-	background.BorderSizePixel = 0
-	background.ZIndex = 100
-	background.Parent = levelUpGui
+	-- === メインボックス ===
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.new(0, 250, 0, 210)
+	frame.Position = UDim2.new(1, -270, 0, 180) -- 📍【位置調整ポイント①】右上からの位置を変えたい場合ここ
+	frame.BackgroundColor3 = Color3.fromRGB(45, 45, 55) -- 📍【色調整】背景の濃さを変える場合ここ
+	frame.BorderSizePixel = 0
+	frame.BackgroundTransparency = 1
+	frame.ZIndex = 100
+	frame.Parent = levelUpGui
 
-	-- 背景を暗くする
-	local bgTween = TweenService:Create(background, TweenInfo.new(0.3), {
-		BackgroundTransparency = 0.5
-	})
-	bgTween:Play()
-
-	-- レベルアップテキスト
-	local levelUpText = Instance.new("TextLabel")
-	levelUpText.Size = UDim2.new(0, 600, 0, 100)
-	levelUpText.Position = UDim2.new(0.5, -300, 0.35, -50)
-	levelUpText.BackgroundTransparency = 1
-	levelUpText.TextColor3 = Color3.fromRGB(255, 215, 0)
-	levelUpText.TextStrokeTransparency = 0
-	levelUpText.TextStrokeColor3 = Color3.new(0, 0, 0)
-	levelUpText.Font = Enum.Font.GothamBold
-	levelUpText.TextSize = 60
-	levelUpText.Text = "LEVEL UP!"
-	levelUpText.TextTransparency = 1
-	levelUpText.ZIndex = 101
-	levelUpText.Parent = levelUpGui
-
-	-- テキストをフェードイン
-	local textTween = TweenService:Create(levelUpText, TweenInfo.new(0.5), {
-		TextTransparency = 0,
-		TextStrokeTransparency = 0
-	})
-	textTween:Play()
-
-	-- レベル表示
-	local levelText = Instance.new("TextLabel")
-	levelText.Size = UDim2.new(0, 600, 0, 60)
-	levelText.Position = UDim2.new(0.5, -300, 0.45, 0)
-	levelText.BackgroundTransparency = 1
-	levelText.TextColor3 = Color3.fromRGB(255, 255, 255)
-	levelText.TextStrokeTransparency = 0
-	levelText.Font = Enum.Font.GothamBold
-	levelText.TextSize = 40
-	levelText.Text = string.format("Level %d", level)
-	levelText.TextTransparency = 1
-	levelText.ZIndex = 101
-	levelText.Parent = levelUpGui
-
-	-- レベルテキストをフェードイン
-	local levelTextTween = TweenService:Create(levelText, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, false, 0.2), {
-		TextTransparency = 0,
-		TextStrokeTransparency = 0.5
-	})
-	levelTextTween:Play()
-
-	-- ステータス表示フレーム
-	local statsFrame = Instance.new("Frame")
-	statsFrame.Size = UDim2.new(0, 400, 0, 150)
-	statsFrame.Position = UDim2.new(0.5, -200, 0.55, 0)
-	statsFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-	statsFrame.BackgroundTransparency = 1
-	statsFrame.BorderSizePixel = 0
-	statsFrame.ZIndex = 101
-	statsFrame.Parent = levelUpGui
-
-	-- 角を丸くする
 	local corner = Instance.new("UICorner")
 	corner.CornerRadius = UDim.new(0, 10)
-	corner.Parent = statsFrame
+	corner.Parent = frame
 
-	-- フレームをフェードイン
-	local frameTween = TweenService:Create(statsFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, false, 0.3), {
-		BackgroundTransparency = 0.2
-	})
-	frameTween:Play()
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = 4
+	stroke.Color = Color3.fromRGB(255, 215, 0)
+	stroke.Transparency = 1
+	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	stroke.Parent = frame
 
-	-- ステータステキスト
-	local statsText = Instance.new("TextLabel")
-	statsText.Size = UDim2.new(1, -40, 1, -40)
-	statsText.Position = UDim2.new(0, 20, 0, 20)
-	statsText.BackgroundTransparency = 1
-	statsText.TextColor3 = Color3.fromRGB(200, 255, 200)
-	statsText.TextStrokeTransparency = 0.5
-	statsText.Font = Enum.Font.Gotham
-	statsText.TextSize = 20
+	-- === タイトル ===
+	local title = Instance.new("TextLabel")
+	title.BackgroundTransparency = 1
+	title.Size = UDim2.new(1, -20, 0, 40)
+	title.Position = UDim2.new(0, 10, 0, 10)
+	title.Font = Enum.Font.GothamBlack
+	title.Text = "LEVEL UP!"
+	title.TextColor3 = Color3.fromRGB(255, 230, 100)
+	title.TextStrokeTransparency = 0.4
+	title.TextScaled = true
+	title.ZIndex = 101
+	title.Parent = frame
+	title.TextTransparency = 1
 
-	local hpPlus   = (deltas and deltas.hp) or 10
-    local spdPlus  = (deltas and deltas.speed) or 2
-    local atkPlus  = (deltas and deltas.attack) or 2
-    local defPlus  = (deltas and deltas.defense) or 2
+	-- === レベル番号 ===
+	local levelText = Instance.new("TextLabel")
+	levelText.BackgroundTransparency = 1
+	levelText.Size = UDim2.new(1, -20, 0, 25)
+	levelText.Position = UDim2.new(0, 15, 0, 50)
+	levelText.Font = Enum.Font.GothamBold
+	levelText.Text = ("Level %d"):format(level)
+	levelText.TextColor3 = Color3.fromRGB(255, 240, 200)
+	levelText.TextStrokeTransparency = 0.5
+	levelText.TextScaled = false
+	levelText.TextSize = 26
+	levelText.ZIndex = 101
+	levelText.Parent = frame
+	levelText.TextTransparency = 1
+	levelText.TextXAlignment = Enum.TextXAlignment.Center -- ✅ 中央寄せに変更
 
-    statsText.Text = string.format(
-        "HP: %d (+%d)\n素早さ: %d (+%d)\n攻撃力: %d (+%d)\n守備力: %d (+%d)",
-        maxHP, hpPlus,
-        speed, spdPlus,
-        attack, atkPlus,
-        defense, defPlus
-    )
+	-- === ステータス詳細 ===
+	local info = Instance.new("TextLabel")
+	info.BackgroundTransparency = 1
+	info.Size = UDim2.new(1, -40, 0, 130)
+	info.Position = UDim2.new(0, 60, 0, 100) -- 📍【位置調整ポイント②】ステータス群の上下位置・左余白を調整したい場合ここ
+	info.Font = Enum.Font.Code
+	info.TextSize = 22
+	info.TextColor3 = Color3.fromRGB(255, 255, 255)
+	info.TextStrokeTransparency = 0.7
+	info.TextYAlignment = Enum.TextYAlignment.Top
+	info.TextXAlignment = Enum.TextXAlignment.Left
+	info.ZIndex = 101
 
-	statsText.TextTransparency = 1
-	statsText.TextYAlignment = Enum.TextYAlignment.Top
-	statsText.ZIndex = 102
-	statsText.Parent = statsFrame
+	info.Text = string.format(
+		"%-8s %6d\n%-8s %6d\n%-8s %6d\n%-8s %6d",
+		"体力",
+		maxHP,
+		"攻撃力",
+		attack,
+		"守備力",
+		defense,
+		"素早さ",
+		speed
+	)
+	info.Parent = frame
+	info.TextTransparency = 1
 
-	-- ステータステキストをフェードイン
-	local statsTween = TweenService:Create(statsText, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, false, 0.4), {
-		TextTransparency = 0,
-		TextStrokeTransparency = 0.5
-	})
-	statsTween:Play()
+	-- === グロー光 ===
+	local glow = Instance.new("ImageLabel")
+	glow.BackgroundTransparency = 1
+	glow.Image = "rbxassetid://10957087634"
+	glow.ImageColor3 = Color3.fromRGB(255, 255, 200)
+	glow.Size = UDim2.new(1.2, 0, 1.2, 0)
+	glow.Position = UDim2.new(-0.1, 0, -0.1, 0)
+	glow.ZIndex = 99
+	glow.Parent = frame
+	glow.ImageTransparency = 1
 
-	-- 2.5秒後にフェードアウト
-	task.delay(2.5, function()
-		local fadeOutTween = TweenService:Create(background, TweenInfo.new(0.5), {
-			BackgroundTransparency = 1
-		})
-		fadeOutTween:Play()
+	-- === フェードイン ===
+	local tweenIn = TweenService:Create(frame, TweenInfo.new(0.5), { BackgroundTransparency = 0 })
+	local tweenStroke = TweenService:Create(stroke, TweenInfo.new(0.5), { Transparency = 0 })
+	local tweenTitle = TweenService:Create(title, TweenInfo.new(0.4), { TextTransparency = 0 })
+	local tweenLevel = TweenService:Create(levelText, TweenInfo.new(0.4), { TextTransparency = 0 })
+	local tweenInfo = TweenService:Create(info, TweenInfo.new(0.8), { TextTransparency = 0 })
+	local tweenGlow = TweenService:Create(glow, TweenInfo.new(1.0), { ImageTransparency = 0.4 })
 
-		TweenService:Create(levelUpText, TweenInfo.new(0.5), {
-			TextTransparency = 1,
-			TextStrokeTransparency = 1
-		}):Play()
+	tweenIn:Play()
+	tweenStroke:Play()
+	tweenTitle:Play()
+	tweenLevel:Play()
+	tweenInfo:Play()
+	tweenGlow:Play()
 
-		TweenService:Create(levelText, TweenInfo.new(0.5), {
-			TextTransparency = 1,
-			TextStrokeTransparency = 1
-		}):Play()
+	task.wait(3.5)
 
-		TweenService:Create(statsFrame, TweenInfo.new(0.5), {
-			BackgroundTransparency = 1
-		}):Play()
+	-- === フェードアウト ===
+	local tweenOut = TweenService:Create(frame, TweenInfo.new(0.8), { BackgroundTransparency = 1 })
+	local tweenOutStroke = TweenService:Create(stroke, TweenInfo.new(0.8), { Transparency = 1 })
+	local tweenOutTitle = TweenService:Create(title, TweenInfo.new(0.8), { TextTransparency = 1 })
+	local tweenOutLevel = TweenService:Create(levelText, TweenInfo.new(0.8), { TextTransparency = 1 })
+	local tweenOutInfo = TweenService:Create(info, TweenInfo.new(0.8), { TextTransparency = 1 })
+	local tweenOutGlow = TweenService:Create(glow, TweenInfo.new(0.8), { ImageTransparency = 1 })
 
-		TweenService:Create(statsText, TweenInfo.new(0.5), {
-			TextTransparency = 1,
-			TextStrokeTransparency = 1
-		}):Play()
+	tweenOut:Play()
+	tweenOutStroke:Play()
+	tweenOutTitle:Play()
+	tweenOutLevel:Play()
+	tweenOutInfo:Play()
+	tweenOutGlow:Play()
 
-		-- 3秒後に削除
-		task.wait(0.5)
-		if levelUpGui then
-			levelUpGui:Destroy()
-			levelUpGui = nil
-		end
-	end)
+	task.wait(1)
+	levelUpGui:Destroy()
 end
 
--- RemoteEventを待機
+-- イベント接続
 local LevelUpEvent = ReplicatedStorage:WaitForChild("LevelUp", 10)
 if LevelUpEvent then
 	LevelUpEvent.OnClientEvent:Connect(showLevelUp)

@@ -83,12 +83,15 @@ end
 -- 大陸定義ファイル内のポータル定義から、ワープポータルを生成（確実に反応するTouchHitbox付き）
 -- ==========================================================
 local function createPortal(config, fromZone)
-	local islandName = config.islandName or fromZone
-	local zoneConfig = Islands[islandName]
-
-	if not zoneConfig then
-		warn(("[WarpPortal] ゾーン '%s' の島設定が見つかりません"):format(islandName))
-		return nil
+	if config.isTerrain then
+		print("[WarpPortal DEBUG] Terrainポータル生成:", config.name)
+	else
+		local islandName = config.islandName or fromZone
+		local zoneConfig = Islands[islandName]
+		if not zoneConfig then
+			warn("[WarpPortal] ゾーン設定が見つかりません:", islandName or "(nil)")
+			return nil
+		end
 	end
 
 	-- === 1) 座標計算（position優先。指定が無ければ offsetX/Z 互換） ===
@@ -112,6 +115,23 @@ local function createPortal(config, fromZone)
 		local groundY = FieldGen.raycastGroundY(portalX, portalZ, rayStartY)
 		portalY = (groundY and (groundY + portalHeight / 2)) or ((zoneConfig.baseY or 30) + portalHeight / 2)
 	end
+
+	if config.snapToGround then
+		local rayStartY = (portalY or 100) + 100
+		local rayResultY = FieldGen.raycastGroundY(portalX, portalZ, rayStartY)
+		if rayResultY then
+			-- ★ ポータルの底を地面に合わせる
+			local baseY = rayResultY
+			-- size / 2 分上げると中央が浮くので、そのまま地面高さに合わせる
+			portalY = baseY
+		end
+	end
+
+	-- === 高さ微調整（上記のあとで反映） ===
+	if config.heightOffset then
+		portalY = portalY + config.heightOffset
+	end
+
 	local portalPosition = Vector3.new(portalX, portalY, portalZ)
 
 	-- === 2) 見た目のポータル（モデル or デフォルトPart） ===
@@ -245,6 +265,59 @@ local function createPortal(config, fromZone)
 
 		print("[DEBUG Prompt] Warp triggered by:", player.Name, "→", config.toZone)
 
+		-- === Terrain ワープ対応 ===
+		if config.isTerrain then
+			-- ★ 新仕様: targetPosition に目的地座標を指定
+			if not config.targetPosition then
+				warn(
+					("[WarpPortal] isTerrain=true ですが targetPosition が指定されていません (%s)"):format(
+						config.name
+					)
+				)
+				return
+			end
+
+			local targetPos =
+				Vector3.new(config.targetPosition[1], config.targetPosition[2] or 200, config.targetPosition[3])
+
+			-- snapToGround が指定されていた場合は地形Yに合わせる
+			if config.snapToGround then
+				local rayOrigin = targetPos + Vector3.new(0, 200, 0)
+				local rayDirection = Vector3.new(0, -500, 0)
+				local rayParams = RaycastParams.new()
+				rayParams.FilterDescendantsInstances = { character }
+				rayParams.FilterType = Enum.RaycastFilterType.Blacklist
+
+				local result = workspace:Raycast(rayOrigin, rayDirection, rayParams)
+				if result and result.Instance then
+					targetPos = Vector3.new(targetPos.X, result.Position.Y, targetPos.Z)
+					print(("[DEBUG TerrainWarp] 地形高さに補正: Y=%.2f"):format(result.Position.Y))
+				else
+					print("[DEBUG TerrainWarp] 地形検出できず、指定Yを使用")
+				end
+			end
+
+			-- 実際にワープさせる
+			print(
+				("[DEBUG TerrainWarp] %s を Terrain 座標へワープ: (%.1f, %.1f, %.1f)"):format(
+					player.Name,
+					targetPos.X,
+					targetPos.Y,
+					targetPos.Z
+				)
+			)
+			character:PivotTo(CFrame.new(targetPos))
+
+			-- ローディング演出
+			local stats = PlayerStatsModule.getStats(player)
+			local level = stats and stats.Level or 1
+			warpEvent:FireClient(player, "StartLoading", "Terrain", level)
+			task.wait(0.3)
+			warpEvent:FireClient(player, "EndLoading", "Terrain", level)
+
+			return -- 通常のZoneワープ処理をスキップ
+		end
+
 		local currentZone = ZoneManager.GetPlayerZone(player)
 		if not currentZone then
 			ZoneManager.PlayerZones[player] = fromZone
@@ -315,19 +388,27 @@ function createPortalsForZone(zoneName)
 
 		for _, portalConfig in ipairs(continent.portals) do
 			task.spawn(function()
-				local islandName = portalConfig.islandName
-				if not Islands[islandName] then
-					warn(("[WarpPortal] 島 %s が見つかりません"):format(islandName))
-				else
-					local portal = createPortal(portalConfig, zoneName)
-					if portal then
-						portal:SetAttribute("FromZone", zoneName)
-						table.insert(activePortals[zoneName], portal)
-						print(
-							("[WarpPortal] ポータル作成: %s (配置: %s)"):format(portalConfig.name, islandName)
-						)
-					end
+				-- === Terrainポータルは islandName チェックをスキップ ===
+				if portalConfig.isTerrain then
+					print("[WarpPortal DEBUG] Terrainポータル生成:", portalConfig.name)
+					createPortal(portalConfig, continentName)
+					return
 				end
+
+				local islandName = portalConfig.islandName
+				if not islandName then
+					warn("[WarpPortal] islandName が設定されていません:", portalConfig.name or "(no name)")
+					return
+				end
+
+				local island = Islands[islandName]
+				if not island then
+					warn("[WarpPortal] 島が見つかりません:", islandName)
+					return
+				end
+
+				print("[WarpPortal DEBUG] 通常ポータル生成:", portalConfig.name)
+				createPortal(portalConfig, continentName)
 			end)
 		end
 	else

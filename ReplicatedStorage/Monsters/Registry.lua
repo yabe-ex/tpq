@@ -5,5 +5,5 @@ return {
 	-- require(Monsters.IceSlime),
 	-- require(Monsters.BrickSlime),
 	require(Monsters.NeonSlime),
-	-- require(Monsters.RubySlime),
+	require(Monsters.RubySlime),
 }

@@ -112,10 +112,12 @@ return {
 			name = "Portal_01",
 			islandName = "Hokkaido_01",
 			toZone = "Hokkaido_C",
-			position = { 447.4, 30.4, 680.8 }, -- ★絶対座標
+			position = { 447.4, 31.2, 680.8 }, -- ★絶対座標
 			model = "crystal1",
-			size = 1.5,
+			size = 4.5,
 			label = "→ 北海道へ",
+			snapToGround = true,
+			heightOffset = 1,
 			rotate = true,
 		},
 	},
