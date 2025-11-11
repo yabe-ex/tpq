@@ -6,7 +6,7 @@ local DataStoreService = game:GetService("DataStoreService")
 local PLAYER_DATA_STORE = DataStoreService:GetDataStore("TypingQuestPlayerSaveData_V1")
 
 -- ゲーム開始時に1回だけ実行
-local CLEAR_SAVE = true -- クリアする場合は true、しない場合は false
+local CLEAR_SAVE = false -- クリアする場合は true、しない場合は false
 
 if CLEAR_SAVE then
 	print("[TEMP] すべてのセーブデータをクリア中...")
@@ -256,7 +256,8 @@ local function setupPlayerSpawn(player)
 				ZoneManager.WarpPlayerToZone(player, targetZone)
 
 				-- ★ 修正：ロードした正確な座標に移動
-				hrp.CFrame = CFrame.new(warpLocation.X, warpLocation.Y, warpLocation.Z)
+				-- hrp.CFrame = CFrame.new(warpLocation.X, warpLocation.Y, warpLocation.Z)
+				hrp.CFrame = CFrame.new(277.6, 5079.9, -20.7)
 
 				print(
 					("[Bootstrap] ✓ %s をワープ完了 (%.0f, %.0f, %.0f)"):format(
