@@ -308,6 +308,94 @@ function ZoneManager.LoadZone(zoneName)
 	end
 end
 
+--------------------------------------------------------------
+-- 🧹 大陸単位で敵を削除する関数（SpawnZone属性で判定）
+--------------------------------------------------------------
+local function cleanupEnemiesForZone(continentName)
+	if not continentName or continentName == "" then
+		return
+	end
+
+	local clearedCount = 0
+	for _, model in ipairs(workspace:GetDescendants()) do
+		if model:IsA("Model") and model:GetAttribute("IsEnemy") then
+			local spawnZone = model:GetAttribute("SpawnZone")
+			if spawnZone == continentName then
+				model:Destroy()
+				clearedCount += 1
+			end
+		end
+	end
+
+	print(string.format("[ZoneManager] 大陸 '%s' の敵を %d 体削除しました", continentName, clearedCount))
+end
+
+-- === 旧大陸オブジェクトの掃除（getContinentRegion不要版） ===
+local function cleanupWorldObjects(continentName)
+	local continent = Continents[continentName]
+	if not continent then
+		warn(("[ZoneManager] 大陸 '%s' の定義が見つかりません"):format(tostring(continentName)))
+		return
+	end
+
+	print(("[ZoneManager] %s 内のワールド外オブジェクトを削除します"):format(continentName))
+
+	-- === 大陸の範囲を自前で計算 ===
+	local minX, minY, minZ = math.huge, math.huge, math.huge
+	local maxX, maxY, maxZ = -math.huge, -math.huge, -math.huge
+
+	for _, islandName in ipairs(continent.islands or {}) do
+		local cfg = Islands[islandName]
+		if cfg then
+			local half = (cfg.sizeXZ or 0) / 2 + 50
+			local hill = (cfg.hillAmplitude or 20)
+			local baseY = cfg.baseY or 0
+			local y0 = baseY - 50
+			local y1 = baseY + hill + 50
+			minX = math.min(minX, (cfg.centerX - half))
+			maxX = math.max(maxX, (cfg.centerX + half))
+			minZ = math.min(minZ, (cfg.centerZ - half))
+			maxZ = math.max(maxZ, (cfg.centerZ + half))
+			minY = math.min(minY, y0)
+			maxY = math.max(maxY, y1)
+		end
+	end
+
+	if minX == math.huge then
+		warn("[ZoneManager] cleanupWorldObjects: 大陸範囲を算出できません")
+		return
+	end
+
+	local region = Region3.new(Vector3.new(minX, minY, minZ), Vector3.new(maxX, maxY, maxZ)):ExpandToGrid(4)
+
+	-- === 該当領域内のPartを探索 ===
+	local partsInRegion = workspace:FindPartsInRegion3WithIgnoreList(region, {}, math.huge)
+	local deleteCount = 0
+
+	for _, part in ipairs(partsInRegion) do
+		local parent = part.Parent
+		if parent and parent ~= workspace.Terrain then
+			-- ★ Portal名を含む or 大陸名を含むものを削除
+			if string.find(part.Name, "Portal") or string.find(parent.Name, "Portal") then
+				print(("[ZoneManager] ポータル削除: %s (%s)"):format(part.Name, parent.Name))
+				parent:Destroy()
+				deleteCount += 1
+			elseif string.find(part.Name, continentName) or string.find(parent.Name, continentName) then
+				print(("[ZoneManager] 大陸残骸削除: %s (%s)"):format(part.Name, parent.Name))
+				parent:Destroy()
+				deleteCount += 1
+			end
+		end
+	end
+
+	print(
+		("[ZoneManager] %s 内で %d 個のポータル／残骸を削除しました"):format(
+			continentName,
+			deleteCount
+		)
+	)
+end
+
 -- ゾーンをアンロード（完全削除）
 function ZoneManager.UnloadZone(zoneName)
 	if not ZoneManager.ActiveZones[zoneName] then
@@ -379,6 +467,15 @@ end
 -- プレイヤーをワープ（改善版）
 function ZoneManager.WarpPlayerToZone(player, zoneName)
 	print(("[ZoneManager] %s を %s にワープ中..."):format(player.Name, zoneName))
+	-- === 新しい大陸でリスポーンを再有効化 ===
+	if _G.MonsterSpawner and _G.MonsterSpawner.EnableRespawnForZone then
+		print(("[ZoneManager DEBUG] EnableRespawnForZone を呼び出します (%s)"):format(zoneName))
+		_G.MonsterSpawner.EnableRespawnForZone(zoneName)
+	else
+		print(
+			"[ZoneManager DEBUG] _G.MonsterSpawner が見つからないためリスポーン再有効化をスキップ"
+		)
+	end
 
 	if not isContinent(zoneName) then
 		warn(("[ZoneManager] ゾーン '%s' は大陸ではありません"):format(player.Name))
@@ -405,6 +502,16 @@ function ZoneManager.WarpPlayerToZone(player, zoneName)
 	-- フェーズ2: 古い大陸をアンロード（Town は除外）
 	if currentZone and currentZone ~= zoneName and not table.find(PERMANENT_ZONES, currentZone) then
 		print(("[ZoneManager] 古い大陸をアンロード: %s"):format(currentZone))
+		-- 🧹 旧大陸の敵を削除（SpawnZone属性に基づく）
+		cleanupEnemiesForZone(currentZone)
+
+		-- === 旧大陸の残骸（ポータルなど）を削除 ===
+		cleanupWorldObjects(currentZone)
+
+		if _G.MonsterSpawner and _G.MonsterSpawner.DisableRespawnForZone then
+			_G.MonsterSpawner.DisableRespawnForZone(currentZone)
+		end
+		-- TerrainやWorld削除など、元の処理を実行
 		ZoneManager.UnloadZone(currentZone)
 	end
 

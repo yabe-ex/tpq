@@ -2,6 +2,28 @@
 -- ゾーン対応版モンスター配置システム（バトル高速化版、徘徊AI修正版）
 local showLabels = true
 
+-- === MonsterSpawner のグローバル登録 ===
+_G.MonsterSpawner = _G.MonsterSpawner or {}
+local activeRespawnZones = {}
+
+function _G.MonsterSpawner.DisableRespawnForZone(continentName)
+	if not continentName then
+		return
+	end
+	activeRespawnZones[continentName] = false
+	print("[MonsterSpawner DEBUG] DisableRespawnForZone called for", continentName)
+	print("[MonsterSpawner DEBUG] activeRespawnZones =", activeRespawnZones)
+end
+
+function _G.MonsterSpawner.EnableRespawnForZone(continentName)
+	if not continentName then
+		return
+	end
+	activeRespawnZones[continentName] = true
+	print("[MonsterSpawner DEBUG] EnableRespawnForZone called for", continentName)
+	print("[MonsterSpawner DEBUG] activeRespawnZones =", activeRespawnZones)
+end
+
 local ServerStorage = game:GetService("ServerStorage")
 local Workspace = game:GetService("Workspace")
 local Players = game:GetService("Players")
@@ -200,14 +222,14 @@ function AIState.new(monster, def)
 	self.isChasing = false
 
 	-- デバッグ出力
-	print(
-		("[AIState] %s - Brave: %.2f (base: %d, range: %.1f)"):format(
-			monster.Name,
-			self.braveScore,
-			braveBase,
-			variationRange
-		)
-	)
+	-- print(
+	-- 	("[AIState] %s - Brave: %.2f (base: %d, range: %.1f)"):format(
+	-- 		monster.Name,
+	-- 		self.braveScore,
+	-- 		braveBase,
+	-- 		variationRange
+	-- 	)
+	-- )
 
 	return self
 end
@@ -646,6 +668,44 @@ end
 
 -- スポーン処理（島指定版）
 local function spawnMonster(template: Model, index: number, def, islandName)
+	-- === リスポーン無効化チェック ===
+	local continentName = "Unknown"
+
+	-- Island 名に "_C" を含まない場合 → Continent 名を優先的に決定
+	if def.SpawnLocations then
+		-- SpawnLocations の最初の定義から大陸名を抽出（例: Kyusyu_C）
+		for _, loc in ipairs(def.SpawnLocations) do
+			if loc.islandName then
+				local inferred = string.match(loc.islandName, "^(.-)_")
+				if inferred then
+					continentName = inferred .. "_C"
+					break
+				end
+			end
+		end
+	end
+
+	-- fallback: islandName から抽出
+	if continentName == "Unknown" and islandName then
+		local inferred = string.match(islandName, "^(.-)_")
+		if inferred then
+			continentName = inferred .. "_C"
+		end
+	end
+
+	-- print(("[MonsterSpawner DEBUG] spawnMonster called for %s (continentName=%s)"):format(islandName, continentName))
+	-- print("[MonsterSpawner DEBUG] activeRespawnZones =", activeRespawnZones)
+	-- print("[MonsterSpawner DEBUG] respawnFlag =", activeRespawnZones[continentName])
+
+	if activeRespawnZones[continentName] == false then
+		-- print(
+		-- 	("[MonsterSpawner] %s のリスポーンが無効化されているためスキップ"):format(
+		-- 		continentName
+		-- 	)
+		-- )
+		return
+	end
+
 	local m = template:Clone()
 	m.Name = (def.Name or template.Name) .. "_" .. index
 
@@ -775,15 +835,29 @@ local function spawnMonster(template: Model, index: number, def, islandName)
 
 	-- ★修正点★: SpawnZone に大陸名を設定
 	local continentName = getContinentNameFromIsland(islandName)
+	if not continentName or continentName == "" then
+		-- "Kyusyu_01" → "Kyusyu" のように自動抽出
+		continentName = string.match(islandName, "^(.-)_") or islandName
+	end
+
 	m:SetAttribute("SpawnZone", continentName)
 	m:SetAttribute("SpawnIsland", islandName)
+
+	-- print(
+	-- 	("[SpawnMonster] %s spawned in %s (Zone: %s, Island: %s)"):format(
+	-- 		m.Name,
+	-- 		workspace.Name,
+	-- 		tostring(continentName),
+	-- 		tostring(islandName)
+	-- 	)
+	-- )
 
 	local speedMin = 0.6 -- -10%
 	local speedMax = 1.4 -- +10%
 	local speedMult = speedMin + math.random() * (speedMax - speedMin)
 	hum.WalkSpeed = (def.WalkSpeed or 14) * speedMult
 	-- hum.HipHeight = 0
-	print(("[SpawnMonster] %s - WalkSpeed: %.2f"):format(m.Name, hum.WalkSpeed))
+	-- print(("[SpawnMonster] %s - WalkSpeed: %.2f"):format(m.Name, hum.WalkSpeed))
 	hrp.Anchored = true
 	hrp.CanCollide = false
 	hrp.Transparency = 1
@@ -847,14 +921,14 @@ local function spawnMonster(template: Model, index: number, def, islandName)
 	end
 	MonsterCounts[islandName][monsterName] = (MonsterCounts[islandName][monsterName] or 0) + 1
 
-	print(
-		("[MonsterSpawner] %s を %s (%s) にスポーン (大陸: %s)"):format(
-			m.Name,
-			islandName,
-			def.Name,
-			continentName
-		)
-	)
+	-- print(
+	-- 	("[MonsterSpawner] %s を %s (%s) にスポーン (大陸: %s)"):format(
+	-- 		m.Name,
+	-- 		islandName,
+	-- 		def.Name,
+	-- 		continentName
+	-- 	)
+	-- )
 end
 
 -- ゾーン内のモンスターカウントを取得
@@ -908,12 +982,12 @@ local function getZoneMonsterCounts(zoneName)
 		end
 	end
 
-	print(
-		("[MonsterSpawner] ゾーン %s のモンスターカウント: %s"):format(
-			zoneName,
-			game:GetService("HttpService"):JSONEncode(counts)
-		)
-	)
+	-- print(
+	-- 	("[MonsterSpawner] ゾーン %s のモンスターカウント: %s"):format(
+	-- 		zoneName,
+	-- 		game:GetService("HttpService"):JSONEncode(counts)
+	-- 	)
+	-- )
 
 	return counts
 end
@@ -987,12 +1061,12 @@ local function scheduleRespawn(monsterName, def, islandName)
 	}
 
 	table.insert(RespawnQueue, respawnData)
-	print(
-		("[MonsterSpawner] %s がリスポーンキューに追加されました（%d秒後）"):format(
-			monsterName,
-			def.RespawnTime
-		)
-	)
+	-- print(
+	-- 	("[MonsterSpawner] %s がリスポーンキューに追加されました（%d秒後）"):format(
+	-- 		monsterName,
+	-- 		def.RespawnTime
+	-- 	)
+	-- )
 end
 
 -- カスタムカウントでモンスターをスポーン（ロード時用）
@@ -1023,13 +1097,13 @@ local function spawnMonstersWithCounts(zoneName, customCounts)
 	-- ★【修正3】*定義上*のモンスター数を取得
 	local definedCounts = getDefinedMonsterCounts(zoneName)
 
-	print(("[MonsterSpawner] カスタムカウントでスポーン (ロード): %s"):format(zoneName))
-	print(("[MonsterSpawner] ...定義数: %s"):format(game:GetService("HttpService"):JSONEncode(definedCounts)))
-	print(
-		("[MonsterSpawner] ...ロード数 (生存): %s"):format(
-			game:GetService("HttpService"):JSONEncode(customCounts)
-		)
-	)
+	-- print(("[MonsterSpawner] カスタムカウントでスポーン (ロード): %s"):format(zoneName))
+	-- print(("[MonsterSpawner] ...定義数: %s"):format(game:GetService("HttpService"):JSONEncode(definedCounts)))
+	-- print(
+	-- 	("[MonsterSpawner] ...ロード数 (生存): %s"):format(
+	-- 		game:GetService("HttpService"):JSONEncode(customCounts)
+	-- 	)
+	-- )
 
 	-- ★【修正4】ロード数 (customCounts) に基づいて *生存* モンスターをスポーン
 	for monsterName, count in pairs(customCounts) do
@@ -1407,7 +1481,7 @@ end
 
 -- ★ 【新規追加】ゾーン削除時にモンスターカウントをリセット
 local function resetMonsterCountsForZone(zoneName)
-	print(("[MonsterSpawner] %s のモンスターカウントをリセット中..."):format(zoneName))
+	-- print(("[MonsterSpawner] %s のモンスターカウントをリセット中..."):format(zoneName))
 
 	-- ★ 重要：ContinentsRegistry から Continents テーブルを再構築
 	local ContinentsRegistry = require(ReplicatedStorage.Continents.Registry)
@@ -1446,17 +1520,17 @@ local function resetMonsterCountsForZone(zoneName)
 		for _, islandName in ipairs(continent.islands) do
 			if MonsterCounts[islandName] then
 				MonsterCounts[islandName] = {}
-				print(("[MonsterSpawner] リセット完了: %s"):format(islandName))
+				-- print(("[MonsterSpawner] リセット完了: %s"):format(islandName))
 			end
 		end
 	end
 
-	print(("[MonsterSpawner] %s のカウントリセット完了"):format(zoneName))
+	-- print(("[MonsterSpawner] %s のカウントリセット完了"):format(zoneName))
 end
 
 -- ゾーンのモンスターを削除する
 function despawnMonstersForZone(zoneName)
-	print(("[MonsterSpawner] %s のモンスターを削除中..."):format(zoneName))
+	-- print(("[MonsterSpawner] %s のモンスターを削除中..."):format(zoneName))
 
 	local removedCount = 0
 
@@ -1479,7 +1553,7 @@ function despawnMonstersForZone(zoneName)
 		end
 	end
 
-	print(("[MonsterSpawner] %s のモンスターを %d体 削除しました"):format(zoneName, removedCount))
+	-- print(("[MonsterSpawner] %s のモンスターを %d体 削除しました"):format(zoneName, removedCount))
 end
 
 -- ===== MemoryMonitor 用のモンスター詳細表示（更新版）=====
@@ -1503,18 +1577,18 @@ local function getZoneMonsterDetails(zoneName)
 end
 
 -- 初期化
-print("[MonsterSpawner] === スクリプト開始（バトル高速化版）===")
+-- print("[MonsterSpawner] === スクリプト開始（バトル高速化版）===")
 
 if BattleSystem then
 	BattleSystem.init()
-	print("[MonsterSpawner] BattleSystem初期化完了")
+	-- print("[MonsterSpawner] BattleSystem初期化完了")
 else
-	print("[MonsterSpawner] BattleSystemなしで起動")
+	-- print("[MonsterSpawner] BattleSystemなしで起動")
 end
 
 -- モンスターカウントリクエストに応答
 GameEvents.MonsterCountRequest.Event:Connect(function(zoneName)
-	print(("[MonsterSpawner] モンスターカウントリクエスト受信: %s"):format(zoneName or "全ゾーン"))
+	-- print(("[MonsterSpawner] モンスターカウントリクエスト受信: %s"):format(zoneName or "全ゾーン"))
 
 	if zoneName then
 		-- 特定ゾーンのみ
@@ -1528,20 +1602,20 @@ GameEvents.MonsterCountRequest.Event:Connect(function(zoneName)
 	GameEvents.MonsterCountResponse:Fire()
 end)
 
-print("[MonsterSpawner] GameEventsへの応答登録完了")
+-- print("[MonsterSpawner] GameEventsへの応答登録完了")
 
 Workspace:WaitForChild("World", 10)
-print("[MonsterSpawner] World フォルダ検出")
+-- print("[MonsterSpawner] World フォルダ検出")
 
 task.wait(1)
 
-print("[MonsterSpawner] モンスターテンプレートをキャッシュ中...")
+-- print("[MonsterSpawner] モンスターテンプレートをキャッシュ中...")
 for _, def in ipairs(Registry) do
 	local template = resolveTemplate(def.TemplatePath)
 	if template then
 		local monsterName = def.Name or "Monster"
 		TemplateCache[monsterName] = template
-		print(("[MonsterSpawner] テンプレートキャッシュ: %s"):format(monsterName))
+		-- print(("[MonsterSpawner] テンプレートキャッシュ: %s"):format(monsterName))
 	else
 		warn(("[MonsterSpawner] テンプレート未発見: %s"):format(def.Name or "?"))
 	end
@@ -1550,7 +1624,7 @@ end
 startGlobalAILoop()
 processRespawnQueue()
 
-print("[MonsterSpawner] === 初期化完了（バトル即座開始対応）===")
+-- print("[MonsterSpawner] === 初期化完了（バトル即座開始対応）===")
 
 _G.SpawnMonstersForZone = spawnMonstersForZone
 _G.DespawnMonstersForZone = despawnMonstersForZone
@@ -1559,7 +1633,7 @@ _G.GetZoneMonsterCounts = getZoneMonsterCounts
 _G.UpdateAllMonsterCounts = updateAllMonsterCounts
 _G.ResetMonsterCountsForZone = resetMonsterCountsForZone
 
-print("[MonsterSpawner] グローバル関数登録完了（カウント機能付き）")
+-- print("[MonsterSpawner] グローバル関数登録完了（カウント機能付き）")
 
 -- ============================================================
 -- テクスチャー変更関数（正しいプロパティ版）
@@ -1614,11 +1688,11 @@ _G.ChangeAllMonsterTexture = function(textureName)
 		end
 	end
 
-	print(
-		("[ChangeAllMonsterTexture] すべてのモンスターのテクスチャーを '%s' に変更"):format(
-			textureName
-		)
-	)
+	-- print(
+	-- 	("[ChangeAllMonsterTexture] すべてのモンスターのテクスチャーを '%s' に変更"):format(
+	-- 		textureName
+	-- 	)
+	-- )
 end
 
 _G.ChangeMonsterTexture = function(monsterName, textureName)
@@ -1669,16 +1743,16 @@ _G.ChangeMonsterTexture = function(monsterName, textureName)
 				applyTexture(core)
 			end
 
-			print(
-				("[ChangeMonsterTexture] %s のテクスチャーを '%s' に変更"):format(monsterName, textureName)
-			)
+			-- print(
+			-- 	("[ChangeMonsterTexture] %s のテクスチャーを '%s' に変更"):format(monsterName, textureName)
+			-- )
 			return
 		end
 	end
 	print(("[ChangeMonsterTexture] %s が見つかりません"):format(monsterName))
 end
 
-print("[MonsterSpawner] テクスチャー変更関数を登録しました（正しい方法）")
+-- print("[MonsterSpawner] テクスチャー変更関数を登録しました（正しい方法）")
 
 -- -- ★ スクリプト内で直接実行（テスト用）
 -- task.wait(3)
