@@ -256,8 +256,8 @@ local function setupPlayerSpawn(player)
 				ZoneManager.WarpPlayerToZone(player, targetZone)
 
 				-- ★ 修正：ロードした正確な座標に移動
-				-- hrp.CFrame = CFrame.new(warpLocation.X, warpLocation.Y, warpLocation.Z)
-				hrp.CFrame = CFrame.new(277.6, 5079.9, -20.7)
+				hrp.CFrame = CFrame.new(warpLocation.X, warpLocation.Y, warpLocation.Z)
+				-- hrp.CFrame = CFrame.new(277.6, 5079.9, -20.7)
 
 				print(
 					("[Bootstrap] ✓ %s をワープ完了 (%.0f, %.0f, %.0f)"):format(

@@ -77,6 +77,17 @@ return {
 			rotate = true,
 			snapToGround = true,
 		},
+		{
+			name = "Portal_Terrain",
+			isTerrain = true, -- Terrainモード
+			position = { 288.9, 5079.9, -64.4 }, -- 現在ポータルの設置位置
+			targetPosition = { 574.1, 5381.9, -770.1 }, -- ワープ先のTerrain座標（★新フィールド）
+			model = "crystal1",
+			size = 1.5,
+			label = "→ 裏へ",
+			rotate = true,
+			snapToGround = true,
+		},
 	},
 
 	fieldObjects = {

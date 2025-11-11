@@ -43,15 +43,12 @@ end
 local function updateDisplay()
 	if hpBarFill and hpLabel then
 		local hpPercent = currentHP / currentMaxHP
-
-		-- HPバーの長さをTweenで滑らかに変更
 		local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 		local tween = TweenService:Create(hpBarFill, tweenInfo, {
 			Size = UDim2.new(hpPercent, 0, 1, 0),
 		})
 		tween:Play()
 
-		-- ★ 追加: HPバーの色をダメージに応じて動的に変更（Tweenで滑らかに）
 		local colorTween = TweenService:Create(
 			hpBarFill,
 			TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
@@ -59,12 +56,13 @@ local function updateDisplay()
 		)
 		colorTween:Play()
 
-		-- HPテキスト更新
 		hpLabel.Text = string.format("%d / %d", currentHP, currentMaxHP)
 	end
 
+	-- ★ ここを追加：レベル更新
 	if levelLabel then
-		-- (非表示または別処理で更新する)
+		local level = currentLevel or 1
+		levelLabel.Text = string.format("Lv.%d", level)
 	end
 
 	if expLabel then
@@ -124,11 +122,11 @@ local function createStatusUI()
 	levelLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 	levelLabel.TextStrokeTransparency = 0.5
 	levelLabel.Font = Enum.Font.GothamBold
-	levelLabel.TextScaled = true
+	-- levelLabel.TextScaled = true
 	levelLabel.Text = "Lv.10"
 	levelLabel.ZIndex = 13
 	levelLabel.Parent = levelBox
-	levelLabel.TextSize = 18 -- ★ 少し小さめ
+	levelLabel.TextSize = 24 -- ★ 少し小さめ
 
 	-- === 右上：ゴールド ===
 	goldLabel = Instance.new("TextLabel")
