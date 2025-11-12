@@ -48,11 +48,11 @@ local PlayerData = {}
 -- プレイヤー参加時に装備を適用するスクリプト
 
 game.Players.PlayerAdded:Connect(function(player)
-	print(
-		"[AccessoryScript DEBUG] 装備イベントリスナーが "
-			.. player.Name
-			.. " のために登録されます。"
-	)
+	-- print(
+	-- 	"[AccessoryScript DEBUG] 装備イベントリスナーが "
+	-- 		.. player.Name
+	-- 		.. " のために登録されます。"
+	-- )
 
 	local ServerStorage = game:GetService("ServerStorage")
 	local AccessoriesFolder = ServerStorage:WaitForChild("Accessories") -- フォルダを先に取得
@@ -65,7 +65,7 @@ game.Players.PlayerAdded:Connect(function(player)
 			warn("[AccessoryScript] " .. character.Name .. " から Humanoid が見つかりません。")
 			return
 		end
-		print("[AccessoryScript DEBUG] CharacterAdded が発火、Humanoid を発見しました for " .. player.Name)
+		-- print("[AccessoryScript DEBUG] CharacterAdded が発火、Humanoid を発見しました for " .. player.Name)
 
 		-- --- 1. ヘルメットの装着 (既存のロジック) ---
 		local helmetSuccess, helmetError = pcall(function()
@@ -78,11 +78,11 @@ game.Players.PlayerAdded:Connect(function(player)
 			end
 
 			humanoid:AddAccessory(helmet)
-			print("[AccessoryScript DEBUG] " .. player.Name .. " に HelmetAccessory を装備しました。")
+			-- print("[AccessoryScript DEBUG] " .. player.Name .. " に HelmetAccessory を装備しました。")
 		end)
 
 		if not helmetSuccess then
-			warn("[AccessoryScript ERROR] ヘルメット装着失敗:", helmetError)
+			-- warn("[AccessoryScript ERROR] ヘルメット装着失敗:", helmetError)
 		end
 
 		-- --- 2. 服（展開図）の装着 (既存のロジック) ---
