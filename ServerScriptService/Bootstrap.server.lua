@@ -6,7 +6,7 @@ local DataStoreService = game:GetService("DataStoreService")
 local PLAYER_DATA_STORE = DataStoreService:GetDataStore("TypingQuestPlayerSaveData_V1")
 
 -- ゲーム開始時に1回だけ実行
-local CLEAR_SAVE = false -- クリアする場合は true、しない場合は false
+local CLEAR_SAVE = true -- クリアする場合は true、しない場合は false
 
 if CLEAR_SAVE then
 	print("[TEMP] すべてのセーブデータをクリア中...")

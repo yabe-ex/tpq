@@ -10,6 +10,31 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local SharedState = require(ReplicatedStorage:WaitForChild("SharedState"))
 local GameEvents = require(ReplicatedStorage:WaitForChild("GameEvents"))
 
+-- === RemoteEventユーティリティ関数 ===
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local function getOrCreateRemoteEvent(name)
+	local event = ReplicatedStorage:FindFirstChild(name)
+	if not event then
+		event = Instance.new("RemoteEvent")
+		event.Name = name
+		event.Parent = ReplicatedStorage
+	end
+	return event
+end
+
+local BattleStartConfirmEvent = getOrCreateRemoteEvent("BattleStartConfirm")
+local BattleStartProceedEvent = getOrCreateRemoteEvent("BattleStartProceed")
+
+BattleStartProceedEvent.OnServerEvent:Connect(function(player)
+	local ctx = PendingStarts[player]
+	if not ctx then
+		return
+	end
+	PendingStarts[player] = nil
+	commitBattleStart(player, ctx)
+end)
+
 local BattleSystem = {}
 
 -- PlayerStatsモジュールをロード
@@ -239,6 +264,44 @@ end
 -- バトル開始
 function BattleSystem.startBattle(player: Player, monster: Model)
 	print(("[BattleSystem] startBattle呼び出し: %s vs %s"):format(player.Name, monster.Name))
+
+	-- ★ クライアントに「バトル開始確認UI」を表示するよう通知
+	BattleStartConfirmEvent:FireClient(player)
+
+	-- ★ タイムアウト処理（押されなければキャンセルして元に戻す）
+	task.delay(10, function()
+		if PendingStarts[player] then
+			-- 元に戻す
+			local character = player.Character
+			if character then
+				local humanoid = character:FindFirstChildOfClass("Humanoid")
+				local hrp = character:FindFirstChild("HumanoidRootPart")
+				if humanoid then
+					humanoid.WalkSpeed = 16
+					humanoid.JumpPower = 50
+					humanoid.JumpHeight = 7.2
+				end
+				if hrp then
+					hrp.Anchored = false
+				end
+			end
+			if monster and monster.Parent then
+				local mh = monster:FindFirstChildOfClass("Humanoid")
+				if mh then
+					mh.WalkSpeed = PendingStarts[player].originalMonsterSpeed or 10
+					mh.JumpPower = 50
+				end
+				for _, part in ipairs(monster:GetDescendants()) do
+					if part:IsA("BasePart") then
+						part.Anchored = false
+					end
+				end
+			end
+
+			SharedState.GlobalBattleActive = false
+			PendingStarts[player] = nil
+		end
+	end)
 
 	-- クールダウンチェック
 	local timeSinceLastBattle = tick() - LastBattleEndTime

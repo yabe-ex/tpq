@@ -305,7 +305,6 @@ function PlayerStats.addExperience(player, amount)
 
 	stats.Experience = (stats.Experience or 0) + (amount or 0)
 
-	-- 複数レベルアップに対応
 	local leveledUp = false
 	local lastDeltas = nil
 
@@ -315,26 +314,29 @@ function PlayerStats.addExperience(player, amount)
 			break
 		end
 
+		-- ★旧ステータスを記録
+		local oldStats = {
+			MaxHP = stats.MaxHP,
+			Speed = stats.Speed,
+			Attack = stats.Attack,
+			Defense = stats.Defense,
+		}
+
 		stats.Experience = stats.Experience - need
 		stats.Level = stats.Level + 1
 		leveledUp = true
 
-		-- 上昇量計算
 		local deltas = PlayerStats.calcLevelUpDeltas(stats.Level)
 		lastDeltas = deltas
 
-		-- 反映
-		stats.MaxHP = (stats.MaxHP or 100) + deltas.hp
-		stats.Speed = (stats.Speed or 10) + deltas.speed
-		stats.Attack = (stats.Attack or 10) + deltas.attack
-		stats.Defense = (stats.Defense or 10) + deltas.defense
-
-		-- HPは全回復（お好みで）
+		-- 新ステータス反映
+		stats.MaxHP += deltas.hp
+		stats.Speed += deltas.speed
+		stats.Attack += deltas.attack
+		stats.Defense += deltas.defense
 		stats.CurrentHP = stats.MaxHP
 
-		-- レベルアップ演出（クライアントへ）
-		-- 既存：LevelUpEvent:FireClient(player, level, maxHP, speed, attack, defense)
-		-- 後方互換＋拡張：第7引数に deltas テーブルを追加
+		-- クライアント通知（新仕様対応）
 		local LevelUpEvent = game.ReplicatedStorage:FindFirstChild("LevelUp")
 		if LevelUpEvent then
 			LevelUpEvent:FireClient(
@@ -344,12 +346,10 @@ function PlayerStats.addExperience(player, amount)
 				stats.Speed,
 				stats.Attack,
 				stats.Defense,
-				deltas -- 追加（nilでもOKにしておく）
+				oldStats -- ✅ ← 新しく追加（旧値を渡す）
 			)
 		end
 	end
-
-	-- ステータス保存や通知があればここで
 end
 
 -- ゴールドを追加
@@ -430,44 +430,34 @@ function PlayerStats.levelUp(player: Player)
 		return
 	end
 
-	local oldLevel = stats.Level
-	stats.Level = stats.Level + 1
+	-- ★旧ステータスを記録
+	local oldStats = {
+		MaxHP = stats.MaxHP,
+		Speed = stats.Speed,
+		Attack = stats.Attack,
+		Defense = stats.Defense,
+	}
 
-	-- ステータスアップ
-	stats.MaxHP = stats.MaxHP + 10
-	stats.CurrentHP = stats.MaxHP -- 全回復
-	stats.Speed = stats.Speed + 2
-	stats.Attack = stats.Attack + 2
-	stats.Defense = stats.Defense + 2
+	local oldLevel = stats.Level
+	stats.Level += 1
+	stats.MaxHP += 10
+	stats.Speed += 2
+	stats.Attack += 2
+	stats.Defense += 2
+	stats.CurrentHP = stats.MaxHP
 
 	print(("[PlayerStats] 🎉 %s がレベルアップ！ %d → %d"):format(player.Name, oldLevel, stats.Level))
-	print(
-		("  HP: %d, 素早さ: %d, 攻撃: %d, 守備: %d"):format(
+
+	local LevelUpEvent = getRemoteEvent("LevelUp")
+	if LevelUpEvent then
+		LevelUpEvent:FireClient(
+			player,
+			stats.Level,
 			stats.MaxHP,
 			stats.Speed,
 			stats.Attack,
-			stats.Defense
-		)
-	)
-
-	-- クライアントにレベルアップ演出を通知
-	local LevelUpEvent = getRemoteEvent("LevelUp")
-	if LevelUpEvent then
-		LevelUpEvent:FireClient(player, stats.Level, stats.MaxHP, stats.Speed, stats.Attack, stats.Defense)
-	end
-
-	-- ステータス更新を送信
-	local StatusUpdateEvent = getRemoteEvent("StatusUpdate")
-	if StatusUpdateEvent then
-		local expToNext = stats.Level * 100
-		StatusUpdateEvent:FireClient(
-			player,
-			stats.CurrentHP,
-			stats.MaxHP,
-			stats.Level,
-			stats.Experience,
-			expToNext,
-			stats.Gold
+			stats.Defense,
+			oldStats -- ✅ ← 新しく追加
 		)
 	end
 end

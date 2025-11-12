@@ -1243,48 +1243,67 @@ onBattleEnd = function(victory, summary)
 				return table.concat(t, ", ")
 			end
 
-			-- ★★★ 修正: 以下のブロックのコメントアウトを解除 ★★★
+			-- ★★★ 修正版: ResultSummary パネル ★★★
 			local panel = Instance.new("Frame")
 			panel.Name = "ResultSummary"
-			panel.Size = UDim2.new(0, 520, 0, 110)
-			panel.Position = UDim2.new(0.5, -260, 0.10, 0) -- ← 上部に配置（中央寄せ）
+			panel.Size = UDim2.new(0, 540, 0, 140) -- ✅ 高さと幅を少し広く
+			panel.Position = UDim2.new(0.5, -270, 0.65, 0) -- ✅ 少し上へ移動
 			panel.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
-			panel.BackgroundTransparency = 0.1
+			panel.BackgroundTransparency = 0.08
 			panel.BorderSizePixel = 0
 			panel.ZIndex = 50
 			panel.Parent = battleGui
 
+			-- 枠線と角丸
 			local corner = Instance.new("UICorner")
 			corner.CornerRadius = UDim.new(0, 10)
 			corner.Parent = panel
 
 			local stroke = Instance.new("UIStroke")
-			stroke.Thickness = 2
+			stroke.Thickness = 4 -- ✅ レベルアップUIと同じ太さ
 			stroke.Color = Color3.fromRGB(100, 200, 255)
-			stroke.Transparency = 0.2
+			stroke.Transparency = 0.15
 			stroke.Parent = panel
 
-			local function addLine(text, order)
+			-- 行生成関数
+			local function addLine(labelText, valueText, order)
+				local lineHeight = 38
+				local yPos = 15 + (order - 1) * lineHeight
+
 				local label = Instance.new("TextLabel")
 				label.BackgroundTransparency = 1
-				label.Size = UDim2.new(1, -24, 0, 30)
-				label.Position = UDim2.new(0, 12, 0, 10 + (order - 1) * 32)
+				label.Size = UDim2.new(0.4, -20, 0, 34)
+				label.Position = UDim2.new(0, 20, 0, yPos)
 				label.Font = Enum.Font.GothamBold
-				label.TextSize = 22
+				label.TextSize = 26 -- ✅ 大きく統一
 				label.TextXAlignment = Enum.TextXAlignment.Left
 				label.TextColor3 = Color3.fromRGB(230, 240, 255)
-				label.Text = text
+				label.Text = labelText
 				label.ZIndex = 51
 				label.Parent = panel
-				return label
+
+				local value = Instance.new("TextLabel")
+				value.BackgroundTransparency = 1
+				value.Size = UDim2.new(0.6, -20, 0, 34)
+				value.Position = UDim2.new(0.4, 0, 0, yPos)
+				value.Font = Enum.Font.GothamBold
+				value.TextSize = 26 -- ✅ 大きく統一
+				value.TextXAlignment = Enum.TextXAlignment.Left
+				value.TextColor3 = Color3.fromRGB(255, 255, 255)
+				value.Text = valueText
+				value.ZIndex = 51
+				value.Parent = panel
+
+				return label, value
 			end
 
-			addLine(("経験値: +%d"):format(exp), 1)
-			addLine(("ゴールド: +%d"):format(gold), 2)
-			addLine(("ドロップ: %s"):format(formatDrops(dropsList)), 3)
+			-- ✅ 各行の生成（セパレータ「:」削除、余白確保）
+			addLine("経験値", ("+%d"):format(exp), 1)
+			addLine("ゴールド", ("+%d"):format(gold), 2)
+			addLine("ドロップ", formatDrops(dropsList), 3)
 
 			-- 2秒キープ → 0.6秒フェードアウト → 破棄
-			task.delay(1.0, function()
+			task.delay(2.0, function()
 				if panel then
 					TweenService:Create(panel, TweenInfo.new(0.6), { BackgroundTransparency = 1 }):Play()
 					TweenService:Create(stroke, TweenInfo.new(0.6), { Transparency = 1 }):Play()
@@ -1575,6 +1594,60 @@ createBattleUI()
 log.debug("イベント接続中...")
 connectRemoteEvent("BattleStart", onBattleStart)
 connectRemoteEvent("BattleEnd", onBattleEnd)
+
+-- === バトル開始前確認UI ===
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local BattleStartConfirmEvent = ReplicatedStorage:WaitForChild("BattleStartConfirm", 5)
+local BattleStartProceedEvent = ReplicatedStorage:WaitForChild("BattleStartProceed", 5)
+
+if BattleStartConfirmEvent and BattleStartProceedEvent then
+	BattleStartConfirmEvent.OnClientEvent:Connect(function()
+		local player = game.Players.LocalPlayer
+		local playerGui = player:WaitForChild("PlayerGui")
+
+		-- 既存UIを削除（多重生成防止）
+		local existing = playerGui:FindFirstChild("BattleConfirmGui")
+		if existing then
+			existing:Destroy()
+		end
+
+		-- === UI生成 ===
+		local screenGui = Instance.new("ScreenGui")
+		screenGui.Name = "BattleConfirmGui"
+		screenGui.ResetOnSpawn = false
+		screenGui.IgnoreGuiInset = true
+		screenGui.DisplayOrder = 200
+		screenGui.Parent = playerGui
+
+		local label = Instance.new("TextLabel")
+		label.BackgroundTransparency = 1
+		label.Size = UDim2.new(1, 0, 0, 60)
+		label.Position = UDim2.new(0, 0, 1, -80) -- 📍画面下中央
+		label.Font = Enum.Font.GothamBold
+		label.Text = "バトルを開始しますか？（スペースキーで開始）"
+		label.TextColor3 = Color3.fromRGB(255, 255, 255)
+		label.TextStrokeTransparency = 0.4
+		label.TextScaled = true
+		label.ZIndex = 201
+		label.Parent = screenGui
+
+		-- === スペースキー押下を待機 ===
+		local UserInputService = game:GetService("UserInputService")
+		local connection
+		connection = UserInputService.InputBegan:Connect(function(input, processed)
+			if processed then
+				return
+			end
+			if input.KeyCode == Enum.KeyCode.Space then
+				BattleStartProceedEvent:FireServer()
+				screenGui:Destroy()
+				connection:Disconnect()
+			end
+		end)
+	end)
+else
+	warn("[BattleUI] BattleStartConfirm / BattleStartProceed イベントが見つかりません。")
+end
 
 local RS = ReplicatedStorage
 
