@@ -208,25 +208,25 @@ local function createPortal(config, fromZone)
 	portal.Parent = worldFolder
 
 	-- === 4) ラベル（任意） ===
-	local labelParent = portal:IsA("Model") and portal.PrimaryPart or portal
-	if labelParent then
-		local billboard = Instance.new("BillboardGui")
-		billboard.Name = "PortalLabel"
-		billboard.Size = UDim2.new(0, 200, 0, 50)
-		billboard.StudsOffset = Vector3.new(0, 7, 0)
-		billboard.AlwaysOnTop = true
-		billboard.Parent = labelParent
+	-- local labelParent = portal:IsA("Model") and portal.PrimaryPart or portal
+	-- if labelParent then
+	-- 	local billboard = Instance.new("BillboardGui")
+	-- 	billboard.Name = "PortalLabel"
+	-- 	billboard.Size = UDim2.new(0, 200, 0, 50)
+	-- 	billboard.StudsOffset = Vector3.new(0, 7, 0)
+	-- 	billboard.AlwaysOnTop = true
+	-- 	billboard.Parent = labelParent
 
-		local label = Instance.new("TextLabel")
-		label.Size = UDim2.new(1, 0, 1, 0)
-		label.BackgroundTransparency = 1
-		label.Text = config.label or ("→ " .. (config.toZone or "?"))
-		label.TextColor3 = Color3.new(1, 1, 1)
-		label.TextScaled = true
-		label.Font = Enum.Font.SourceSansBold
-		label.TextStrokeTransparency = 0.5
-		label.Parent = billboard
-	end
+	-- 	local label = Instance.new("TextLabel")
+	-- 	label.Size = UDim2.new(1, 0, 1, 0)
+	-- 	label.BackgroundTransparency = 1
+	-- 	label.Text = config.label or ("→ " .. (config.toZone or "?"))
+	-- 	label.TextColor3 = Color3.new(1, 1, 1)
+	-- 	label.TextScaled = true
+	-- 	label.Font = Enum.Font.SourceSansBold
+	-- 	label.TextStrokeTransparency = 0.5
+	-- 	label.Parent = billboard
+	-- end
 
 	-- === 5) 専用ヒットボックス（確実にTouchedを取る） ===
 	local hitbox = Instance.new("Part")
@@ -376,8 +376,26 @@ function createPortalsForZone(zoneName)
 	print("[WarpPortal DEBUG] createPortalsForZone 呼び出し:", zoneName)
 
 	if activePortals[zoneName] then
-		print(("[WarpPortal] %s のポータルは既に存在します"):format(zoneName))
-		return
+		-- 🧩 既存ポータルが存在するか確認し、実際のモデルが残っていなければ再生成
+		local stillExists = false
+		for _, portal in ipairs(activePortals[zoneName]) do
+			if portal and portal.Parent then
+				stillExists = true
+				break
+			end
+		end
+
+		if stillExists then
+			print(("[WarpPortal] %s のポータルは既に存在します"):format(zoneName))
+			return
+		else
+			print(
+				("[WarpPortal] %s のポータル参照は残っていますが、実体が削除されているため再生成します"):format(
+					zoneName
+				)
+			)
+			activePortals[zoneName] = nil
+		end
 	end
 
 	activePortals[zoneName] = {}
@@ -417,6 +435,10 @@ function createPortalsForZone(zoneName)
 end
 
 function destroyPortalsForZone(zoneName)
+	if zoneName == "ContinentTown" then
+		print("[WarpPortal] ContinentTown は削除対象外のためスキップします")
+		return
+	end
 	local actualZoneName = zoneName
 	if actualZoneName == "StartTown" then
 		actualZoneName = "ContinentTown"
@@ -428,6 +450,12 @@ function destroyPortalsForZone(zoneName)
 				actualZoneName
 			)
 		)
+		return
+	end
+
+	-- ContinentTown のポータルは削除対象外
+	if zoneName == "ContinentTown" then
+		print("[WarpPortal] ContinentTown は削除対象外のためスキップします")
 		return
 	end
 

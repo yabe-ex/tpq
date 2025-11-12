@@ -14,8 +14,8 @@ task.spawn(function()
 		for zoneName, _ in pairs(ZoneManager.ActiveZones) do
 			table.insert(activeZones, zoneName)
 		end
-		print("ロード済み大陸:", table.concat(activeZones, ", ") or "なし")
-		print("大陸数:", #activeZones)
+		-- print("ロード済み大陸:", table.concat(activeZones, ", ") or "なし")
+		-- print("大陸数:", #activeZones)
 
 		-- モンスター数
 		local monsterCount = 0
