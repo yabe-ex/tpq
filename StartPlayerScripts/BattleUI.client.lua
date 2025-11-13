@@ -1124,23 +1124,7 @@ local function onBattleStart(monsterName, hp, maxHP, damage, levels, pHP, pMaxHP
 	else
 		-- カウントダウン無し：即座に単語表示
 		setFirstWordNow()
-		-- ★ 初回プログレスは「仮速度」で回さない（サーバ通知で正しい速度・開始時刻に同期）
-		-- ※ 以前の不具合（初回だけ途中で被弾）を避けるため、ここは何もしない
 	end
-
-	-- 戦闘タイムアウト（お守り）
-	-- if currentBattleTimeout then
-	-- 	task.cancel(currentBattleTimeout)
-	-- 	currentBattleTimeout = nil
-	-- end
-	-- currentBattleTimeout = task.delay(30, function()
-	-- 	if inBattle then
-	-- 		warn("[BattleUI] バトルタイムアウト！強制終了します")
-	-- 		if onBattleEnd then
-	-- 			onBattleEnd(false)
-	-- 		end
-	-- 	end
-	-- end)
 
 	-- ★ 初回サイクル・ウォッチドッグ：0.35秒待っても同期が来なければ要求
 	task.delay(0.35, function()
@@ -1247,9 +1231,9 @@ onBattleEnd = function(victory, summary)
 			local panel = Instance.new("Frame")
 			panel.Name = "ResultSummary"
 			panel.Size = UDim2.new(0, 540, 0, 140) -- ✅ 高さと幅を少し広く
-			panel.Position = UDim2.new(0.5, -270, 0.65, 0) -- ✅ 少し上へ移動
+			panel.Position = UDim2.new(0.5, -270, 0.75, 0) -- ✅ 少し上へ移動
 			panel.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
-			panel.BackgroundTransparency = 0.08
+			panel.BackgroundTransparency = 0.58
 			panel.BorderSizePixel = 0
 			panel.ZIndex = 50
 			panel.Parent = battleGui
@@ -1595,59 +1579,59 @@ log.debug("イベント接続中...")
 connectRemoteEvent("BattleStart", onBattleStart)
 connectRemoteEvent("BattleEnd", onBattleEnd)
 
--- === バトル開始前確認UI ===
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local BattleStartConfirmEvent = ReplicatedStorage:WaitForChild("BattleStartConfirm", 5)
-local BattleStartProceedEvent = ReplicatedStorage:WaitForChild("BattleStartProceed", 5)
+-- -- === バトル開始前確認UI ===
+-- local ReplicatedStorage = game:GetService("ReplicatedStorage")
+-- local BattleStartConfirmEvent = ReplicatedStorage:WaitForChild("BattleStartConfirm", 5)
+-- local BattleStartProceedEvent = ReplicatedStorage:WaitForChild("BattleStartProceed", 5)
 
-if BattleStartConfirmEvent and BattleStartProceedEvent then
-	BattleStartConfirmEvent.OnClientEvent:Connect(function()
-		local player = game.Players.LocalPlayer
-		local playerGui = player:WaitForChild("PlayerGui")
+-- if BattleStartConfirmEvent and BattleStartProceedEvent then
+-- 	BattleStartConfirmEvent.OnClientEvent:Connect(function()
+-- 		local player = game.Players.LocalPlayer
+-- 		local playerGui = player:WaitForChild("PlayerGui")
 
-		-- 既存UIを削除（多重生成防止）
-		local existing = playerGui:FindFirstChild("BattleConfirmGui")
-		if existing then
-			existing:Destroy()
-		end
+-- 		-- 既存UIを削除（多重生成防止）
+-- 		local existing = playerGui:FindFirstChild("BattleConfirmGui")
+-- 		if existing then
+-- 			existing:Destroy()
+-- 		end
 
-		-- === UI生成 ===
-		local screenGui = Instance.new("ScreenGui")
-		screenGui.Name = "BattleConfirmGui"
-		screenGui.ResetOnSpawn = false
-		screenGui.IgnoreGuiInset = true
-		screenGui.DisplayOrder = 200
-		screenGui.Parent = playerGui
+-- 		-- === UI生成 ===
+-- 		local screenGui = Instance.new("ScreenGui")
+-- 		screenGui.Name = "BattleConfirmGui"
+-- 		screenGui.ResetOnSpawn = false
+-- 		screenGui.IgnoreGuiInset = true
+-- 		screenGui.DisplayOrder = 200
+-- 		screenGui.Parent = playerGui
 
-		local label = Instance.new("TextLabel")
-		label.BackgroundTransparency = 1
-		label.Size = UDim2.new(1, 0, 0, 60)
-		label.Position = UDim2.new(0, 0, 1, -80) -- 📍画面下中央
-		label.Font = Enum.Font.GothamBold
-		label.Text = "バトルを開始しますか？（スペースキーで開始）"
-		label.TextColor3 = Color3.fromRGB(255, 255, 255)
-		label.TextStrokeTransparency = 0.4
-		label.TextScaled = true
-		label.ZIndex = 201
-		label.Parent = screenGui
+-- 		local label = Instance.new("TextLabel")
+-- 		label.BackgroundTransparency = 1
+-- 		label.Size = UDim2.new(1, 0, 0, 60)
+-- 		label.Position = UDim2.new(0, 0, 1, -80) -- 📍画面下中央
+-- 		label.Font = Enum.Font.GothamBold
+-- 		label.Text = "バトルを開始しますか？（スペースキーで開始）"
+-- 		label.TextColor3 = Color3.fromRGB(255, 255, 255)
+-- 		label.TextStrokeTransparency = 0.4
+-- 		label.TextScaled = true
+-- 		label.ZIndex = 201
+-- 		label.Parent = screenGui
 
-		-- === スペースキー押下を待機 ===
-		local UserInputService = game:GetService("UserInputService")
-		local connection
-		connection = UserInputService.InputBegan:Connect(function(input, processed)
-			if processed then
-				return
-			end
-			if input.KeyCode == Enum.KeyCode.Space then
-				BattleStartProceedEvent:FireServer()
-				screenGui:Destroy()
-				connection:Disconnect()
-			end
-		end)
-	end)
-else
-	warn("[BattleUI] BattleStartConfirm / BattleStartProceed イベントが見つかりません。")
-end
+-- 		-- === スペースキー押下を待機 ===
+-- 		local UserInputService = game:GetService("UserInputService")
+-- 		local connection
+-- 		connection = UserInputService.InputBegan:Connect(function(input, processed)
+-- 			if processed then
+-- 				return
+-- 			end
+-- 			if input.KeyCode == Enum.KeyCode.Space then
+-- 				BattleStartProceedEvent:FireServer()
+-- 				screenGui:Destroy()
+-- 				connection:Disconnect()
+-- 			end
+-- 		end)
+-- 	end)
+-- else
+-- 	warn("[BattleUI] BattleStartConfirm / BattleStartProceed イベントが見つかりません。")
+-- end
 
 local RS = ReplicatedStorage
 

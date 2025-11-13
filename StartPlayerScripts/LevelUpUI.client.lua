@@ -176,11 +176,11 @@ local function showLevelUp(level, maxHP, speed, attack, defense, oldHP, oldSpeed
 	-- === メインボックス ===
 	local frame = Instance.new("Frame")
 	frame.Size = UDim2.new(0, 540, 0, 300)
-	frame.Position = UDim2.new(0.5, 0, 0.4, 0)
+	frame.Position = UDim2.new(0.5, 0, 0.3, 0)
 	frame.AnchorPoint = Vector2.new(0.5, 0.5)
 	frame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 	frame.BorderSizePixel = 0
-	frame.BackgroundTransparency = 1
+	frame.BackgroundTransparency = 0.8
 	frame.ZIndex = 100
 	frame.Parent = levelUpGui
 

@@ -1,6 +1,4 @@
 -- ServerScriptService/BattleSystem.lua
--- バトルシステムの管理（敵の定期攻撃対応版）
--- ステップ4: SharedState統合版
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -23,28 +21,10 @@ local function getOrCreateRemoteEvent(name)
 	return event
 end
 
-local BattleStartConfirmEvent = getOrCreateRemoteEvent("BattleStartConfirm")
-local BattleStartProceedEvent = getOrCreateRemoteEvent("BattleStartProceed")
-
-BattleStartProceedEvent.OnServerEvent:Connect(function(player)
-	local ctx = PendingStarts[player]
-	if not ctx then
-		return
-	end
-	PendingStarts[player] = nil
-	commitBattleStart(player, ctx)
-end)
-
 local BattleSystem = {}
 
 -- PlayerStatsモジュールをロード
 local PlayerStats = require(ServerScriptService:WaitForChild("PlayerStats"))
-
--- 【ステップ4】グローバル変数をSharedStateに移行
--- SharedState.ActiveBattles = {}  -- 既にSharedStateで定義済み
--- SharedState.GlobalBattleActive = false  -- 追加が必要
--- SharedState.EndingBattles = {}  -- 追加が必要
--- SharedState.DefeatedByMonster = {}  -- 追加が必要
 
 -- 初期化（SharedStateに追加のフィールドを設定）
 if not SharedState.GlobalBattleActive then
@@ -264,44 +244,6 @@ end
 -- バトル開始
 function BattleSystem.startBattle(player: Player, monster: Model)
 	print(("[BattleSystem] startBattle呼び出し: %s vs %s"):format(player.Name, monster.Name))
-
-	-- ★ クライアントに「バトル開始確認UI」を表示するよう通知
-	BattleStartConfirmEvent:FireClient(player)
-
-	-- ★ タイムアウト処理（押されなければキャンセルして元に戻す）
-	task.delay(10, function()
-		if PendingStarts[player] then
-			-- 元に戻す
-			local character = player.Character
-			if character then
-				local humanoid = character:FindFirstChildOfClass("Humanoid")
-				local hrp = character:FindFirstChild("HumanoidRootPart")
-				if humanoid then
-					humanoid.WalkSpeed = 16
-					humanoid.JumpPower = 50
-					humanoid.JumpHeight = 7.2
-				end
-				if hrp then
-					hrp.Anchored = false
-				end
-			end
-			if monster and monster.Parent then
-				local mh = monster:FindFirstChildOfClass("Humanoid")
-				if mh then
-					mh.WalkSpeed = PendingStarts[player].originalMonsterSpeed or 10
-					mh.JumpPower = 50
-				end
-				for _, part in ipairs(monster:GetDescendants()) do
-					if part:IsA("BasePart") then
-						part.Anchored = false
-					end
-				end
-			end
-
-			SharedState.GlobalBattleActive = false
-			PendingStarts[player] = nil
-		end
-	end)
 
 	-- クールダウンチェック
 	local timeSinceLastBattle = tick() - LastBattleEndTime
