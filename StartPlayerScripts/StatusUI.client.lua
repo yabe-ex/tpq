@@ -240,8 +240,8 @@ local function switchToBattleView()
 	-- === HPバー（太く・中央寄せ） ===
 	if hpBarBackground then
 		hpBarBackground:TweenSizeAndPosition(
-			UDim2.new(1, -40, 0, 40), -- 高さを約2倍に
-			UDim2.new(0, 20, 0.5, -20), -- フレーム内で中央配置
+			UDim2.new(1, 0, 0, 40), -- 高さを約2倍に
+			UDim2.new(0, 0, 0.5, 0), -- フレーム内で中央配置
 			Enum.EasingDirection.Out,
 			Enum.EasingStyle.Quad,
 			0.3,

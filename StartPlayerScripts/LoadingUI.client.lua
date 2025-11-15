@@ -12,11 +12,11 @@ print("[LoadingUI] 初期化開始")
 
 -- ローディング画像の Asset ID リスト
 local LoadingImages = {
-	"rbxassetid://74049529220513",
-	"rbxassetid://139010932520933",
-	"rbxassetid://140175964173817",
-	"rbxassetid://117367461463003",
-	"rbxassetid://109768764700057",
+	-- "rbxassetid://74049529220513",
+	-- "rbxassetid://139010932520933",
+	-- "rbxassetid://140175964173817",
+	-- "rbxassetid://117367461463003",
+	-- "rbxassetid://109768764700057",
 }
 
 -- LoadingHints を読み込み
@@ -119,7 +119,8 @@ local function createLoadingScreen()
 		print("[LoadingUI] ヒント取得完了: " .. tostring(hint))
 
 		-- ヒントテキストをセット
-		self.hintText.Text = "💡 " .. hint
+		-- self.hintText.Text = "💡 " .. hint
+		self.hintText.Text = hint
 		print("[LoadingUI] hintText をセット完了: " .. self.hintText.Text)
 
 		-- リセット（透明度を0に）

@@ -16,6 +16,7 @@ M.continents = {
 	-- "ContinentKyushu",
 	-- "VerdantContinent",
 	-- "Hokkaido_C",
+	"Kyusyu_C",
 }
 
 -- ▼ 既定の表示パラメータ

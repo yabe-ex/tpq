@@ -376,27 +376,30 @@ return {
 	-- },
 	portals = {
 		{
+			isTerrain = true,
 			name = "Portal_01",
-			islandName = "Kyusyu_01",
+			islandName = "Kyusyu_27",
 			toZone = "Kyusyu_C",
-			position = { 812.6, 31.4, 509.1 }, -- ★絶対座標
-			model = "crystal1",
-			size = 3,
+			position = { 870.6, 31.2, 492.7 }, -- ★絶対座標 -- 870.6, 31.2, 492.7  391.5, 31.2, 701.8
+			model = "Door",
+			size = 1,
 			label = "→ 九州へ",
 			rotate = true,
+			rotation = { 0, 90, 0 },
 			snapToGround = true,
-			heightOffset = 1,
+			heightOffset = 0,
 		},
 		{
 			name = "Portal_Terrain",
 			isTerrain = true, -- Terrainモード
 			position = { 450.4, 43.8, 405.2 }, -- 現在ポータルの設置位置
 			targetPosition = { 574.1, 5381.9, -770.1 }, -- ワープ先のTerrain座標（★新フィールド）
-			model = "crystal1",
-			size = 1.5,
+			model = "Door",
+			size = 1,
 			label = "→ 大地へ",
 			rotate = true,
 			snapToGround = true,
+			heightOffset = 0,
 		},
 	},
 

@@ -556,8 +556,8 @@ end
 --  - さらにHPはレベル帯で上昇幅を増やす（例：Lv10~19:+15、Lv20~29:+20、…）
 function PlayerStats.calcLevelUpDeltas(newLevel: number)
 	-- 基本値
-	local hpInc = 10
-	local otherInc = 2
+	local hpInc = 50
+	local otherInc = 30
 
 	-- レベル帯でHP増加幅を加算（例示）
 	if newLevel >= 20 then

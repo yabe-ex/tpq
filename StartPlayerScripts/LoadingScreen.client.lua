@@ -12,11 +12,11 @@ print("[LoadingScreen] 初期化中...")
 
 -- ローディング画像の Asset ID リスト
 local LoadingImages = {
-	"rbxassetid://74049529220513",
-	"rbxassetid://139010932520933",
-	"rbxassetid://140175964173817",
-	"rbxassetid://117367461463003",
-	"rbxassetid://109768764700057",
+	-- "rbxassetid://74049529220513",
+	-- "rbxassetid://139010932520933",
+	-- "rbxassetid://140175964173817",
+	-- "rbxassetid://117367461463003",
+	-- "rbxassetid://109768764700057",
 }
 
 -- LoadingHints を読み込み
@@ -100,8 +100,9 @@ local function showInitialLoading()
 
 	-- ヒント取得（デフォルトレベル 1）
 	local hint = LoadingHints.getHintByLevel(1)
-	hintText.Text = "💡 " .. hint
-	print("[LoadingScreen] ヒント表示: " .. hint)
+	hintText.Text = hint
+	-- hintText.Text = "💡 " .. hint
+	-- print("[LoadingScreen] ヒント表示: " .. hint)
 end
 
 -- ★【修正】イベント処理フラグ

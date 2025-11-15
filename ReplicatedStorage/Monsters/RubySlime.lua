@@ -4,14 +4,14 @@ return {
 	RespawnTime = 10,
 
 	-- 【新】バトルステータス
-	HP = 100, -- ライフ
+	HP = 70, -- ライフ
 	Speed = 60, -- 素早さ
 	Attack = 18, -- 攻撃力
 	Defense = 5, -- 守備力
 
 	-- 【新】報酬
 
-	Experience = 50, -- 得られる経験値
+	Experience = 40, -- 得られる経験値
 	Gold = 15, -- 得られるゴールド
 
 	-- タイピングレベル（重み付き）
@@ -57,8 +57,8 @@ return {
 	UpdateFar = 1.0,
 	UpdateNearbyThreshold = 150,
 
-	WalkSpeed = 10, -- 歩く速さ
-	Brave = 4, -- 勇敢さレベル（0～9）
+	WalkSpeed = 2, -- 歩く速さ
+	Brave = 6, -- 勇敢さレベル（0～9）
 	VariationRange = 2, -- 個体差の幅
 }
 
