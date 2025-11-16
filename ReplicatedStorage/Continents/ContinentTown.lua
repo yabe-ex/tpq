@@ -14,79 +14,44 @@ return {
 
 	-- ★修正: 北海道、四国、九州へのポータルを追加
 	portals = {
-		-- {
-		-- 	name = "Town_to_Hokkaido",
-		-- 	toZone = "ContinentHokkaido",
-		-- 	islandName = "StartTown",
-		-- 	offsetX = 0,
-		-- 	offsetZ = -50,
-		-- 	size = Vector3.new(8, 12, 8),
-		-- 	color = Color3.fromRGB(200, 200, 255),
-		-- 	label = "→ Hokkaido",
-		-- },
-		-- {
-		-- 	name = "Town_to_Kyushu", -- ★新規ポータル
-		-- 	toZone = "ContinentKyushu",
-		-- 	islandName = "Town_SE",
-		-- 	offsetX = 0,
-		-- 	offsetZ = 0,
-		-- 	size = Vector3.new(8, 12, 8),
-		-- 	color = Color3.fromRGB(255, 100, 100),
-		-- 	label = "→ Kyushu",
-		-- },
-
-		-- {
-		-- 	name = "Hokkaido_20", -- ★新規ポータル
-		-- 	toZone = "Hokkaido_C",
-		-- 	islandName = "Town_SW",
-		-- 	offsetX = 0,
-		-- 	offsetZ = 0,
-		-- 	size = Vector3.new(8, 12, 8),
-		-- 	color = Color3.fromRGB(255, 100, 100),
-		-- 	label = "→ 北海道へ",
-		-- },
-		-- {
-		-- 	name = "Portal_02",
-		-- 	zone = "Hokkaido_C",
-		-- 	position = { 10083.2, 57.2, 50.4 }, -- ★絶対座標
-		-- 	toZone = "Kyusyu_C",
-		-- 	model = "crystal1",
-		-- 	size = 1.5,
-		-- 	label = "→ 九州へ",
-		-- 	rotate = true,
-		-- },
 		{
 			name = "Portal_02",
 			islandName = "Kyusyu_01",
 			toZone = "Kyusyu_C",
-			position = { 10029.4, 57.5, 57.5 }, -- ★絶対座標
-			model = "crystal1",
-			size = 1.5,
 			label = "→ 九州へ",
+			position = { 10029.4, 57.5, 57.5 }, -- ★絶対座標
+			model = "Door",
+			size = 1,
 			snapToGround = true,
+			heightOffset = 0,
 			rotate = true,
+			rotation = { 0, 45, 0 },
 		},
 		{
 			name = "Portal_Terrain",
 			isTerrain = true, -- Terrainモード
-			position = { 10028.4, 59.5, 52.5 }, -- 現在ポータルの設置位置
-			targetPosition = { 574.1, 5381.9, -770.1 }, -- ワープ先のTerrain座標（★新フィールド）
-			model = "crystal1",
-			size = 1.5,
 			label = "→ 大地へ",
-			rotate = true,
+			position = { 10028.4, 59.5, 52.5 }, -- 現在ポータルの設置位置
+			targetPosition = { 265.4, 5079.9, -59.2 }, -- ワープ先のTerrain座標（★新フィールド）
+			model = "Door",
+			size = 1,
 			snapToGround = true,
+			heightOffset = 0,
+			rotate = true,
+			rotation = { 0, 45, 0 },
 		},
 		{
 			name = "Portal_Terrain",
 			isTerrain = true, -- Terrainモード
 			position = { 288.9, 5079.9, -64.4 }, -- 現在ポータルの設置位置
 			targetPosition = { 574.1, 5381.9, -770.1 }, -- ワープ先のTerrain座標（★新フィールド）
-			model = "crystal1",
-			size = 1.5,
+			model = "Door",
+			size = 1,
 			label = "→ 裏へ",
-			rotate = true,
 			snapToGround = true,
+			heightOffset = 0,
+			rotate = true,
+			rotation = { 0, 45, 0 },
 		},
 	},
 

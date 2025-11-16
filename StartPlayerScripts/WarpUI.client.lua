@@ -11,8 +11,8 @@ local playerGui = player:WaitForChild("PlayerGui")
 local warpEvent = ReplicatedStorage:WaitForChild("WarpEvent", 5) -- ★修正: タイムアウトを5秒に設定
 
 if not warpEvent then
-    warn("[WarpUI] WarpEventが見つかりません。ワープUIは機能しません。")
-    return
+	warn("[WarpUI] WarpEventが見つかりません。ワープUIは機能しません。")
+	return
 end
 
 print("[WarpUI] 初期化完了")
@@ -55,7 +55,6 @@ warpEvent.OnClientEvent:Connect(function(action, zoneName)
 			frame.BackgroundTransparency = 1 - i
 			task.wait(0.05)
 		end
-
 	elseif action == "EndLoading" then
 		print("[WarpUI] ロード画面非表示")
 

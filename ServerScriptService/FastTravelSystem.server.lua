@@ -36,23 +36,38 @@ if not GetContinentsEvent then
 	print("[FastTravel] GetContinentsEvent を作成しました")
 end
 
--- 大陸一覧を取得
-local function getContinentsList()
-	local continents = {}
+-- ファストトラベル可能なポータル一覧を取得
+local function getFastTravelTargetsList()
+	local targets = {}
 
 	for _, continent in ipairs(ContinentsRegistry) do
-		table.insert(continents, {
-			name = continent.name,
-			displayName = continent.displayName or continent.name,
-		})
+		-- 大陸に portals 定義があるか確認
+		if continent.portals then
+			for _, portal in ipairs(continent.portals) do
+				-- isFastTravelTarget が true で、かつ Terrainワープではないポータルのみを対象とする
+				if portal.isFastTravelTarget and not portal.isTerrain then
+					table.insert(targets, {
+						continentName = continent.name, -- 移動先の大陸名
+						portalName = portal.name, -- ポータルの名前（UI表示用）
+						displayName = portal.name, -- UI表示名としてポータル名を使用
+					})
+				end
+			end
+		end
 	end
 
-	return continents
+	return targets
 end
 
 -- ワープ処理（改善版：プレイヤーレベルをローディング画面に送信）
-local function handleFastTravel(player, continentName)
-	print(("[FastTravel] %s が %s へのワープを要求"):format(player.Name, continentName))
+local function handleFastTravel(player, continentName, portalName)
+	print(
+		("[FastTravel] [DEBUG] ワープ要求受信: Player=%s, Continent=%s, Portal=%s"):format(
+			player.Name,
+			continentName,
+			portalName or "（大陸デフォルト）"
+		)
+	)
 
 	-- バリデーション
 	local continent = nil
@@ -68,6 +83,37 @@ local function handleFastTravel(player, continentName)
 		return false
 	end
 
+	local targetPortal = nil
+	local spawnPosition = nil
+
+	if portalName then
+		-- ポータル名が指定されている場合、ポータル定義から spawnPosition を取得
+		if continent.portals then
+			for _, portal in ipairs(continent.portals) do
+				if portal.name == portalName and portal.isFastTravelTarget and not portal.isTerrain then
+					targetPortal = portal
+					local basePosition = portal.position
+					spawnPosition = {
+						basePosition[1] - 4, -- X座標から4を引く
+						basePosition[2], -- Y座標はそのまま
+						basePosition[3] - 4, -- Z座標から4を引く
+					}
+					break
+				end
+			end
+		end
+
+		if not targetPortal or not spawnPosition then
+			warn(
+				("[FastTravel] [DEBUG] ポータル検索失敗: 大陸 '%s' にファストトラベル対象のポータル '%s' が見つかりません"):format(
+					continentName,
+					portalName
+				)
+			)
+			return false
+		end
+	end
+
 	-- プレイヤーレベルを取得
 	local stats = PlayerStatsModule.getStats(player)
 	local playerLevel = stats and stats.Level or 1
@@ -77,8 +123,21 @@ local function handleFastTravel(player, continentName)
 	FastTravelEvent:FireClient(player, "StartLoading", continentName, playerLevel)
 	task.wait(0.2)
 
-	-- ZoneManager.WarpPlayerToZone() を呼び出し
-	local success = ZoneManager.WarpPlayerToZone(player, continentName)
+	local success
+	if spawnPosition then
+		-- 座標指定ワープ
+		print(
+			("[FastTravel] [DEBUG] ZoneManager.WarpPlayerToZoneWithPosition 呼び出し: Zone=%s, Pos=%s"):format(
+				continentName,
+				tostring(spawnPosition)
+			)
+		)
+		success = ZoneManager.WarpPlayerToZoneWithPosition(player, continentName, spawnPosition)
+	else
+		-- 大陸デフォルトワープ（ファストトラベルの旧仕様）
+		print(("[FastTravel] [DEBUG] ZoneManager.WarpPlayerToZone 呼び出し: Zone=%s"):format(continentName))
+		success = ZoneManager.WarpPlayerToZone(player, continentName)
+	end
 
 	if success then
 		print(("[FastTravel] %s を %s にワープしました"):format(player.Name, continentName))
@@ -141,11 +200,11 @@ end
 
 -- イベント接続
 GetContinentsEvent.OnServerInvoke = function(player)
-	return getContinentsList()
+	return getFastTravelTargetsList()
 end
 
-FastTravelEvent.OnServerEvent:Connect(function(player, continentName)
-	handleFastTravel(player, continentName)
+FastTravelEvent.OnServerEvent:Connect(function(player, continentName, portalName)
+	handleFastTravel(player, continentName, portalName)
 end)
 
 print("[FastTravel] 初期化完了")

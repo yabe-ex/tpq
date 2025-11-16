@@ -3,7 +3,8 @@ local RS = game:GetService("ReplicatedStorage")
 local ContinentsFolder = RS:WaitForChild("Continents")
 
 return {
-	require(ContinentsFolder.ContinentTown),
+	require(ContinentsFolder.TerrainBase_C),
+	require(ContinentsFolder.ContinentTown), -- TerrainBase_C に移行するためコメントアウト
 	-- require(ContinentsFolder.ContinentHokkaido),
 	-- require(ContinentsFolder.ContinentShikoku),
 	-- require(ContinentsFolder.ContinentKyushu),

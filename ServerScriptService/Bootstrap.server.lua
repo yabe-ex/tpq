@@ -125,7 +125,7 @@ local PlayerStatsModule = require(script.Parent:WaitForChild("PlayerStats"))
 local DataStoreManager = require(ServerScriptService:WaitForChild("DataStoreManager"))
 local DataCollectors = require(ServerScriptService:WaitForChild("DataCollectors"))
 
-local START_ZONE_NAME = "ContinentTown"
+local START_ZONE_NAME = "TerrainBase"
 local LastLoadedData = {}
 
 -- PlayerStatsの初期化
@@ -139,20 +139,23 @@ task.spawn(function()
 	print("[Bootstrap] 地形生成完了")
 end)
 
--- 街の設定を取得
-local IslandsRegistry = require(ReplicatedStorage.Islands.Registry)
-local townConfig = nil
-for _, island in ipairs(IslandsRegistry) do
-	if island.name == "StartTown" then
-		townConfig = island
+-- Terrainの設定を取得
+local ContinentsRegistry = require(ReplicatedStorage.Continents.Registry)
+local terrainConfig = nil
+for _, continent in ipairs(ContinentsRegistry) do
+	if continent.name == "TerrainBase" then
+		terrainConfig = continent
 		break
 	end
 end
 
-if not townConfig then
-	warn("[Bootstrap] StartTown の設定が見つかりません！")
+if not terrainConfig then
+	warn("[Bootstrap] TerrainBase の設定が見つかりません！")
 	return
 end
+
+-- TerrainBaseのスポーン座標を設定
+local TERRAIN_SPAWN_POS = { 377.3, 5131.0, 112.4 }
 
 -- セーブイベントハンドラ
 SaveGameEvent.OnServerEvent:Connect(function(player)
@@ -188,10 +191,10 @@ local function setupPlayerSpawn(player)
 		if not loadedLocation then
 			warn(("[Bootstrap] %s のロードデータがnil、デフォルト使用"):format(player.Name))
 			loadedLocation = {
-				ZoneName = "ContinentTown",
-				X = townConfig.centerX,
-				Y = townConfig.baseY + 25,
-				Z = townConfig.centerZ,
+				ZoneName = "TerrainBase",
+				X = TERRAIN_SPAWN_POS[1],
+				Y = TERRAIN_SPAWN_POS[2],
+				Z = TERRAIN_SPAWN_POS[3],
 			}
 		end
 
@@ -243,10 +246,10 @@ local function setupPlayerSpawn(player)
 				if not warpLocation then
 					warn(("[Bootstrap] %s のロードデータがnil、デフォルト使用"):format(player.Name))
 					warpLocation = {
-						ZoneName = "ContinentTown",
-						X = townConfig.centerX,
-						Y = townConfig.baseY + 25,
-						Z = townConfig.centerZ,
+						ZoneName = "TerrainBase",
+						X = TERRAIN_SPAWN_POS[1],
+						Y = TERRAIN_SPAWN_POS[2],
+						Z = TERRAIN_SPAWN_POS[3],
 					}
 				end
 

@@ -165,7 +165,17 @@ local function createPortal(config, fromZone)
 			local base = portal:FindFirstChildWhichIsA("BasePart")
 			if base then
 				portal.PrimaryPart = base
+				print(("[WarpPortal DEBUG] %s のPrimaryPartを設定: %s"):format(portal.Name, base.Name))
+			else
+				warn(("[WarpPortal] %s にBasePartが見つかりません！"):format(portal.Name))
 			end
+		elseif portal:IsA("Model") and portal.PrimaryPart then
+			print(
+				("[WarpPortal DEBUG] %s のPrimaryPartは既に設定済み: %s"):format(
+					portal.Name,
+					portal.PrimaryPart.Name
+				)
+			)
 		end
 
 		local scale = config.size or 1
@@ -200,12 +210,16 @@ local function createPortal(config, fromZone)
 
 	portal:SetAttribute("FromZone", fromZone)
 	portal:SetAttribute("ToZone", config.toZone)
+	if config.isTerrain then
+		portal:SetAttribute("IsTerrain", true)
+	end
 
 	-- === 3) Workspaceに配置 ===
 	local worldFolder = workspace:FindFirstChild("World") or Instance.new("Folder")
 	worldFolder.Name = "World"
 	worldFolder.Parent = workspace
 	portal.Parent = worldFolder
+	print(("[WarpPortal DEBUG] createPortal: %s を World に追加完了"):format(portal.Name))
 
 	-- === 4) ラベル（任意） ===
 	-- local labelParent = portal:IsA("Model") and portal.PrimaryPart or portal
@@ -277,8 +291,16 @@ local function createPortal(config, fromZone)
 				return
 			end
 
+			-- ★ X, Z 座標をそれぞれ -4 微調整
+			local targetPosition = config.targetPosition
+			local adjustedTargetPosition = {
+				targetPosition[1] - 4, -- X座標から4を引く
+				targetPosition[2], -- Y座標はそのまま
+				targetPosition[3] - 4, -- Z座標から4を引く
+			}
+
 			local targetPos =
-				Vector3.new(config.targetPosition[1], config.targetPosition[2] or 200, config.targetPosition[3])
+				Vector3.new(adjustedTargetPosition[1], adjustedTargetPosition[2] or 200, adjustedTargetPosition[3])
 
 			-- snapToGround が指定されていた場合は地形Yに合わせる
 			if config.snapToGround then
@@ -330,7 +352,20 @@ local function createPortal(config, fromZone)
 		task.wait(0.3)
 		BattleSystem.resetAllBattles()
 
-		local success = ZoneManager.WarpPlayerToZone(player, config.toZone)
+		local success
+		local spawnPosition = config.spawnPosition
+
+		if spawnPosition then
+			-- ★ X, Z 座標をそれぞれ -4 微調整
+			local adjustedSpawnPosition = {
+				spawnPosition[1] - 4, -- X座標から4を引く
+				spawnPosition[2], -- Y座標はそのまま
+				spawnPosition[3] - 4, -- Z座標から4を引く
+			}
+			success = ZoneManager.WarpPlayerToZoneWithPosition(player, config.toZone, adjustedSpawnPosition)
+		else
+			success = ZoneManager.WarpPlayerToZone(player, config.toZone)
+		end
 		print("[DEBUG Prompt] Warp success:", success)
 
 		if success then
@@ -373,7 +408,7 @@ local function createPortal(config, fromZone)
 end
 
 function createPortalsForZone(zoneName)
-	print("[WarpPortal DEBUG] createPortalsForZone 呼び出し:", zoneName)
+	print("--- [WarpPortal DEBUG] createPortalsForZone 呼び出し:", zoneName, "---")
 
 	if activePortals[zoneName] then
 		-- 🧩 既存ポータルが存在するか確認し、実際のモデルが残っていなければ再生成
@@ -402,35 +437,73 @@ function createPortalsForZone(zoneName)
 
 	local continent = Continents[zoneName]
 	if continent and continent.portals then
+		print(("[WarpPortal DEBUG] %s のポータル設定数: %d"):format(zoneName, #continent.portals))
 		print(("[WarpPortal] %s のポータルを並列生成中..."):format(zoneName))
 
-		for _, portalConfig in ipairs(continent.portals) do
+		for i, portalConfig in ipairs(continent.portals) do
 			task.spawn(function()
+				print(
+					("[WarpPortal DEBUG] ポータル生成タスク開始: %s (%d/%d)"):format(
+						portalConfig.name or "無名",
+						i,
+						#continent.portals
+					)
+				)
 				-- === Terrainポータルは islandName チェックをスキップ ===
 				if portalConfig.isTerrain then
 					print("[WarpPortal DEBUG] Terrainポータル生成:", portalConfig.name)
-					createPortal(portalConfig, continentName)
+					local portal = createPortal(portalConfig, continentName)
+					if portal then
+						print(
+							("[WarpPortal DEBUG] Terrainポータル生成成功: %s (Parent: %s)"):format(
+								portal.Name,
+								portal.Parent.Name
+							)
+						)
+					else
+						warn(("[WarpPortal DEBUG] Terrainポータル生成失敗: %s"):format(portalConfig.name))
+					end
 					return
+				else
+					warn(("[WarpPortal DEBUG] isTerrainがfalseのためスキップ: %s"):format(portalConfig.name))
 				end
 
 				local islandName = portalConfig.islandName
 				if not islandName then
-					warn("[WarpPortal] islandName が設定されていません:", portalConfig.name or "(no name)")
+					warn(
+						"[WarpPortal DEBUG] islandName が設定されていません:",
+						portalConfig.name or "(no name)"
+					)
 					return
 				end
 
 				local island = Islands[islandName]
 				if not island then
-					warn("[WarpPortal] 島が見つかりません:", islandName)
+					warn("[WarpPortal DEBUG] 島が見つかりません:", islandName)
 					return
 				end
 
 				print("[WarpPortal DEBUG] 通常ポータル生成:", portalConfig.name)
-				createPortal(portalConfig, continentName)
+				local portal = createPortal(portalConfig, continentName)
+				if portal then
+					print(
+						("[WarpPortal DEBUG] 通常ポータル生成成功: %s (Parent: %s)"):format(
+							portal.Name,
+							portal.Parent.Name
+						)
+					)
+				else
+					warn(("[WarpPortal DEBUG] 通常ポータル生成失敗: %s"):format(portalConfig.name))
+				end
 			end)
 		end
 	else
-		print(("[WarpPortal] %s のポータル設定が見つかりません"):format(zoneName))
+		warn(
+			("[WarpPortal DEBUG] %s のポータル設定が見つかりません (Continent: %s)"):format(
+				zoneName,
+				tostring(continent)
+			)
+		)
 	end
 end
 
@@ -488,7 +561,8 @@ task.spawn(function()
 end)
 
 task.wait(0.3)
-createPortalsForZone("ContinentTown")
+-- createPortalsForZone("ContinentTown") -- TerrainBase_C に移行するためコメントアウト
+createPortalsForZone("TerrainBase")
 
 Players.PlayerRemoving:Connect(function(player)
 	warpingPlayers[player.UserId] = nil

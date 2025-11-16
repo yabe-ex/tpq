@@ -58,8 +58,9 @@ local LAND_COLOR = Color3.fromRGB(60, 180, 90) -- 明るめの緑
 local SEA_COLOR = Color3.fromRGB(40, 110, 200) -- 落ち着いた青
 local PLAYER_COLOR = Color3.fromRGB(100, 200, 255)
 local MONSTER_COLOR = Color3.fromRGB(255, 50, 50)
-local PORTAL_TOWN_COLOR = Color3.fromRGB(255, 200, 100)
-local PORTAL_OTHER_COLOR = Color3.fromRGB(200, 100, 255)
+local PORTAL_COLOR = Color3.fromRGB(100, 200, 255) -- 水色（ポータル用）
+local PORTAL_TOWN_COLOR = Color3.fromRGB(255, 200, 100) -- 旧定義（互換性のため残す）
+local PORTAL_OTHER_COLOR = Color3.fromRGB(200, 100, 255) -- 旧定義（互換性のため残す）
 
 -- ScreenGui作成
 local screenGui = Instance.new("ScreenGui")
@@ -218,7 +219,7 @@ local function getPortalIcon(size)
 	icon.Name = "PortalIcon"
 	icon.Size = UDim2.new(0, size, 0, size)
 	icon.AnchorPoint = Vector2.new(0.5, 0.5)
-	icon.BackgroundColor3 = PORTAL_OTHER_COLOR
+	icon.BackgroundColor3 = PORTAL_COLOR
 	icon.BorderSizePixel = 0
 	icon.ZIndex = 6
 	icon.Parent = portalsFolder
@@ -612,7 +613,24 @@ local function updatePortalIcons()
 				local toZone = obj:GetAttribute("ToZone")
 				if toZone then
 					portalCount = portalCount + 1
-					log.debugf("  - " .. obj.Name .. " → " .. toZone .. " (Pos: " .. tostring(obj.Position) .. ")")
+					local pos
+					if obj:IsA("Model") then
+						local primaryPart = obj.PrimaryPart
+						if not primaryPart then
+							-- PrimaryPartがnilの場合、自動取得を試みる
+							primaryPart = obj:FindFirstChildWhichIsA("BasePart")
+						end
+						if primaryPart then
+							pos = primaryPart.Position
+						else
+							pos = nil
+						end
+					elseif obj:IsA("BasePart") then
+						pos = obj.Position
+					else
+						pos = nil
+					end
+					log.debugf("  - " .. obj.Name .. " → " .. toZone .. " (Pos: " .. tostring(pos) .. ")")
 				end
 			end
 			log.debugf("ポータル総数: " .. portalCount)
@@ -628,22 +646,41 @@ local function updatePortalIcons()
 	if worldFolder then
 		for _, portal in ipairs(worldFolder:GetChildren()) do
 			-- ToZone属性があるものをポータルとして認識
-			if portal:IsA("BasePart") and portal:GetAttribute("ToZone") then
-				local portalPos = portal.Position
-				if isInRange(portalPos, playerPos) then
+			local toZone = portal:GetAttribute("ToZone")
+			local portalPos
+			if portal:IsA("Model") then
+				local primaryPart = portal.PrimaryPart
+				if not primaryPart then
+					-- PrimaryPartがnilの場合、自動取得を試みる
+					primaryPart = portal:FindFirstChildWhichIsA("BasePart")
+				end
+				if primaryPart then
+					portalPos = primaryPart.Position
+				end
+			elseif portal:IsA("BasePart") then
+				portalPos = portal.Position
+			end
+
+			-- Terrainポータルはミニマップに表示しない
+			local isTerrain = false
+			if portal and portal.GetAttribute then
+				isTerrain = portal:GetAttribute("IsTerrain") or false
+			end
+			if isTerrain then
+				-- Terrainポータルはスキップ
+			else
+				if toZone and portalPos and isInRange(portalPos, playerPos) then
 					local mapX, mapZ = worldToMinimap(portalPos, playerPos)
 					if mapX >= 0 and mapX <= 1 and mapZ >= 0 and mapZ <= 1 then
+						local settings = getCurrentSettings()
 						local icon = getPortalIcon(settings.portalIconSize)
-						icon.Position = UDim2.new(mapX, 0, mapZ, 0)
-
-						-- Townへのポータルかそれ以外かで色分け
-						local toZone = portal:GetAttribute("ToZone")
-						if toZone == "StartTown" then
-							-- Townへのポータル → オレンジ
-							icon.BackgroundColor3 = PORTAL_TOWN_COLOR
+						if icon then
+							-- アイコンの位置を設定
+							icon.Position = UDim2.new(mapX, 0, mapZ, 0)
+							-- ポータルの色を水色に統一
+							icon.BackgroundColor3 = PORTAL_COLOR
 						else
-							-- それ以外（他の大陸へ） → ポータルの色またはデフォルト紫
-							icon.BackgroundColor3 = portal.Color or PORTAL_OTHER_COLOR
+							log.debugf("ポータルアイコンが取得できません: " .. tostring(toZone))
 						end
 					end
 				end
@@ -733,7 +770,7 @@ task.spawn(function()
 	local worldFolder = workspace:WaitForChild("World", 10)
 	if worldFolder then
 		worldFolder.ChildAdded:Connect(function(child)
-			if child:IsA("BasePart") and child:GetAttribute("ToZone") then
+			if child:GetAttribute("ToZone") then
 				log.debugf("新しいポータル検出: " .. child.Name)
 				task.wait(0.1)
 				updatePortalIcons()

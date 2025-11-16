@@ -108,17 +108,33 @@ return {
 	},
 	--544.5, 31.2, 323.3
 	portals = {
+		-- {
+		-- 	name = "Portal_01",
+		-- 	islandName = "Hokkaido_01",
+		-- 	toZone = "Hokkaido_C",
+		-- 	position = { 447.4, 31.2, 680.8 }, -- ★絶対座標
+		-- 	-- model = "crystal1",
+		-- 	model = "Door"
+		-- 	size = 4.5,
+		-- 	label = "→ 北海道へ",
+		-- 	snapToGround = true,
+		-- 	heightOffset = 1,
+		-- 	rotate = true,
+		-- },
 		{
-			name = "Portal_01",
+			isFastTravelTarget = true,
+			name = "九州の桜島",
 			islandName = "Hokkaido_01",
 			toZone = "Hokkaido_C",
-			position = { 447.4, 31.2, 680.8 }, -- ★絶対座標
-			model = "crystal1",
-			size = 4.5,
+			position = { 447.2, 31.3, 685.2 }, --866.7, 24.2, 491.5
+			spawnPosition = { 870.6, 31.2, 492.7 },
+			model = "Door",
+			size = 1,
 			label = "→ 北海道へ",
 			snapToGround = true,
-			heightOffset = 1,
+			heightOffset = 0,
 			rotate = true,
+			rotation = { 0, 45, 0 },
 		},
 	},
 	paths = {},

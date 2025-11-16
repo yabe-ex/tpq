@@ -786,28 +786,30 @@ function BattleSystem.init()
 			-- HPを全回復
 			PlayerStats.fullHeal(player)
 
-			-- StartTownの座標を取得
-			print("[BattleSystem] StartTownの座標を取得中...")
-			local IslandsRegistry = require(ReplicatedStorage:WaitForChild("Islands"):WaitForChild("Registry"))
-			print(("[BattleSystem] IslandsRegistry取得完了。島の数: %d"):format(#IslandsRegistry))
+			-- TerrainBaseの座標を取得
+			print("[BattleSystem] TerrainBaseの座標を取得中...")
+			local ContinentsRegistry = require(ReplicatedStorage:WaitForChild("Continents"):WaitForChild("Registry"))
+			print(("[BattleSystem] ContinentsRegistry取得完了。大陸の数: %d"):format(#ContinentsRegistry))
 
-			local townConfig = nil
-			for i, island in ipairs(IslandsRegistry) do
-				print(("[BattleSystem] 島 %d: name=%s"):format(i, tostring(island.name)))
-				if island.name == "StartTown" then
-					townConfig = island
-					print("[BattleSystem] StartTownを発見！")
+			local terrainConfig = nil
+			for i, continent in ipairs(ContinentsRegistry) do
+				print(("[BattleSystem] 大陸 %d: name=%s"):format(i, tostring(continent.name)))
+				if continent.name == "TerrainBase" then
+					terrainConfig = continent
+					print("[BattleSystem] TerrainBaseを発見！")
 					break
 				end
 			end
 
-			-- 街にテレポート
-			if character and townConfig then
+			local TERRAIN_SPAWN_POS = { 377.3, 5131.0, 112.4 }
+
+			-- TerrainBaseにテレポート
+			if character and terrainConfig then
 				local hrp = character:FindFirstChild("HumanoidRootPart")
 				if hrp then
-					local spawnX = townConfig.centerX
-					local spawnZ = townConfig.centerZ
-					local spawnY = townConfig.baseY + 50 -- 高めに設定
+					local spawnX = TERRAIN_SPAWN_POS[1]
+					local spawnZ = TERRAIN_SPAWN_POS[3]
+					local spawnY = TERRAIN_SPAWN_POS[2]
 					print(
 						("[BattleSystem] テレポート座標: X=%.0f, Y=%.0f, Z=%.0f"):format(spawnX, spawnY, spawnZ)
 					)
@@ -819,24 +821,24 @@ function BattleSystem.init()
 					task.wait(0.1)
 					hrp.CFrame = CFrame.new(spawnX, spawnY, spawnZ)
 
-					print(("[BattleSystem] %s を街にテレポート完了"):format(player.Name))
+					print(("[BattleSystem] %s をTerrainBaseにテレポート完了"):format(player.Name))
 
 					-- ZoneManagerにも通知
 					local ZoneManager = require(ServerScriptService:WaitForChild("ZoneManager"))
-					ZoneManager.PlayerZones[player] = "StartTown"
-					print("[BattleSystem] ZoneManagerにStartTownを記録")
+					ZoneManager.PlayerZones[player] = "TerrainBase"
+					print("[BattleSystem] ZoneManagerにTerrainBaseを記録")
 
-					-- 【重要】StartTownのポータルを再生成
+					-- 【重要】TerrainBaseのポータルを再生成
 					if _G.CreatePortalsForZone then
-						print("[BattleSystem] StartTownのポータルを再生成")
-						_G.CreatePortalsForZone("StartTown")
+						print("[BattleSystem] TerrainBaseのポータルを再生成")
+						_G.CreatePortalsForZone("TerrainBase")
 					else
 						warn("[BattleSystem] CreatePortalsForZone関数が見つかりません")
 					end
 				end
 			elseif character then
-				-- フォールバック：townConfigが見つからない場合
-				warn("[BattleSystem] StartTownが見つかりません！")
+				-- フォールバック：terrainConfigが見つからない場合
+				warn("[BattleSystem] TerrainBaseが見つかりません！")
 				print("[BattleSystem] フォールバック：原点にテレポート")
 				local hrp = character:FindFirstChild("HumanoidRootPart")
 				if hrp then

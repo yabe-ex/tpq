@@ -33,14 +33,23 @@ end
 local function getZoneSpawnPosition(zoneName)
 	local continent = ContinentsMap[zoneName]
 
+	-- TerrainBaseの場合、spawnPositionを直接使用
+	if continent and continent.spawnPosition then
+		return Vector3.new(continent.spawnPosition[1], continent.spawnPosition[2], continent.spawnPosition[3])
+	end
+
 	if not continent or not continent.islands or #continent.islands == 0 then
 		warn(("[OceanSafety] ゾーン '%s' が見つかりません"):format(zoneName))
-		-- フォールバック: Town の最初の島を使用
-		local townContinent = ContinentsMap["ContinentTown"]
-		if townContinent and townContinent.islands and #townContinent.islands > 0 then
-			continent = townContinent
+		-- フォールバック: TerrainBase の座標を使用
+		local terrainContinent = ContinentsMap["TerrainBase"]
+		if terrainContinent and terrainContinent.spawnPosition then
+			return Vector3.new(
+				terrainContinent.spawnPosition[1],
+				terrainContinent.spawnPosition[2],
+				terrainContinent.spawnPosition[3]
+			)
 		else
-			return Vector3.new(0, 20, 0) -- 最後の手段
+			return Vector3.new(377.3, 5131.0, 112.4) -- 最後の手段：TerrainBaseのデフォルト座標
 		end
 	end
 
@@ -100,7 +109,7 @@ local monitorPlayer = function(player)
 
 				-- 現在のゾーンを取得
 				local currentZone = ZoneManager.GetPlayerZone(player)
-				local spawnPos = getZoneSpawnPosition(currentZone or "ContinentTown")
+				local spawnPos = getZoneSpawnPosition(currentZone or "TerrainBase")
 
 				-- 速度をゼロに
 				hrp.AssemblyLinearVelocity = Vector3.zero

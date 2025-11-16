@@ -376,11 +376,27 @@ return {
 	-- },
 	portals = {
 		{
-			isTerrain = true,
-			name = "Portal_01",
-			islandName = "Kyusyu_27",
+			isFastTravelTarget = true,
+			name = "北海道の北側",
+			islandName = "Kyusyu_01",
 			toZone = "Kyusyu_C",
-			position = { 870.6, 31.2, 492.7 }, -- ★絶対座標 -- 870.6, 31.2, 492.7  391.5, 31.2, 701.8
+			position = { 870.6, 31.2, 492.7 },
+			spawnPosition = { 447.2, 31.3, 685.2 },
+			model = "Door",
+			size = 1,
+			label = "→ 九州へ",
+			rotate = true,
+			rotation = { 0, 90, 0 },
+			snapToGround = true,
+			heightOffset = 0,
+		},
+		{
+			isFastTravelTarget = true,
+			name = "北海道の南側",
+			islandName = "Kyusyu_01",
+			toZone = "Kyusyu_C",
+			position = { 82.6, 31.3, 821.6 },
+			spawnPosition = { 115.4, 31.7, 769.7 },
 			model = "Door",
 			size = 1,
 			label = "→ 九州へ",
@@ -391,9 +407,12 @@ return {
 		},
 		{
 			name = "Portal_Terrain",
+			isFastTravelTarget = true,
+			islandName = "Kyusyu_01",
 			isTerrain = true, -- Terrainモード
 			position = { 450.4, 43.8, 405.2 }, -- 現在ポータルの設置位置
-			targetPosition = { 574.1, 5381.9, -770.1 }, -- ワープ先のTerrain座標（★新フィールド）
+			targetPosition = { 574.1, 5381.9, -770.1 },
+			spawnPosition = { 574.1, 5381.9, -770.1 },
 			model = "Door",
 			size = 1,
 			label = "→ 大地へ",

@@ -33,7 +33,7 @@ local function applyVolumes()
 	local se = getAttrNum("SEVolume", 1.0)
 	local bgm = getAttrNum("BGMVolume", 1.0)
 
-	SoundService.Volume = se
+	-- 注: SoundServiceにVolumeプロパティは存在しないため、SE音量は個別のSoundオブジェクトで調整する必要がある
 
 	-- BGMは isBattleActive 中はディミング係数(0.3)が乗る
 	if bgmSound then

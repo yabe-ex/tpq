@@ -1,3 +1,4 @@
+--- StartPlayerScripts/FastTravelUI.client.lua ---
 -- StarterPlayer/StarterPlayerScripts/FastTravelUI.client.lua
 -- ファストトラベルUIシステム
 
@@ -148,13 +149,13 @@ listPadding.Parent = scrollFrame
 local function openModal()
 	print("[FastTravelUI] モーダルを開く")
 
-	-- 大陸一覧を取得
-	local success, continents = pcall(function()
+	-- ファストトラベル可能なポータル一覧を取得
+	local success, targets = pcall(function()
 		return GetContinentsEvent:InvokeServer()
 	end)
 
-	if not success or not continents then
-		warn("[FastTravelUI] 大陸一覧の取得に失敗しました")
+	if not success or not targets then
+		warn("[FastTravelUI] ファストトラベル先リストの取得に失敗しました:", targets)
 		return
 	end
 
@@ -165,15 +166,15 @@ local function openModal()
 		end
 	end
 
-	-- 大陸ボタンを作成
-	for i, continent in ipairs(continents) do
+	-- ボタンを生成
+	for i, target in ipairs(targets) do
 		local button = Instance.new("TextButton")
-		button.Name = continent.name
+		button.Name = target.portalName -- ポータル名をボタン名に使用
 		button.Size = UDim2.new(1, -20, 0, 60)
 		button.BackgroundColor3 = Color3.fromRGB(60, 100, 180)
 		button.BackgroundTransparency = 0.2
 		button.BorderSizePixel = 0
-		button.Text = continent.displayName
+		button.Text = target.displayName -- ポータル名をUI表示に使用
 		button.TextColor3 = Color3.new(1, 1, 1)
 		button.TextSize = 20
 		button.Font = Enum.Font.SourceSansBold
@@ -200,8 +201,14 @@ local function openModal()
 
 		-- クリックイベント
 		button.MouseButton1Click:Connect(function()
-			print(("[FastTravelUI] %s へワープ要求"):format(continent.name))
-			FastTravelEvent:FireServer(continent.name)
+			print(
+				("[FastTravelUI] %s のポータル '%s' へワープ要求"):format(
+					target.continentName,
+					target.portalName
+				)
+			)
+			-- サーバーに大陸名とポータル名を送信
+			FastTravelEvent:FireServer(target.continentName, target.portalName)
 			closeModal()
 		end)
 	end

@@ -1,3 +1,4 @@
+--- ServerScriptService/ZoneManager.lua ---
 -- ServerScriptService/ZoneManager.lua
 -- 改善版：古い大陸を削除 + Town常駐 + ワープロジック統一
 
@@ -182,22 +183,24 @@ local function loadContinent(continentName)
 	end
 
 	-- 含まれる全ての島を生成
-	for _, islandName in ipairs(continent.islands) do
-		local islandConfig = Islands[islandName]
-		if islandConfig then
-			if showForThisContinent and labelParams then
-				islandConfig.showIslandLabel = (labelParams.showIslandLabel ~= false)
-				islandConfig.labelOffsetY = labelParams.labelOffsetY
-				islandConfig.labelMaxDistance = labelParams.labelMaxDistance
-				islandConfig._labelFont = labelParams.font
-				islandConfig._labelTextSize = labelParams.textSize
-				islandConfig._labelBgTrans = labelParams.backgroundTransparency
-			end
+	if continent.islands then
+		for _, islandName in ipairs(continent.islands) do
+			local islandConfig = Islands[islandName]
+			if islandConfig then
+				if showForThisContinent and labelParams then
+					islandConfig.showIslandLabel = (labelParams.showIslandLabel ~= false)
+					islandConfig.labelOffsetY = labelParams.labelOffsetY
+					islandConfig.labelMaxDistance = labelParams.labelMaxDistance
+					islandConfig._labelFont = labelParams.font
+					islandConfig._labelTextSize = labelParams.textSize
+					islandConfig._labelBgTrans = labelParams.backgroundTransparency
+				end
 
-			-- print(("[ZoneManager]   - 島を生成: %s"):format(islandName))
-			FieldGen.generateIsland(islandConfig)
-		else
-			warn(("[ZoneManager]   - 島が見つかりません: %s"):format(islandName))
+				-- print(("[ZoneManager]   - 島を生成: %s"):format(islandName))
+				FieldGen.generateIsland(islandConfig)
+			else
+				warn(("[ZoneManager]   - 島が見つかりません: %s"):format(islandName))
+			end
 		end
 	end
 
@@ -529,35 +532,73 @@ function ZoneManager.WarpPlayerToZone(player, zoneName)
 
 	-- フェーズ5: ワープ先座標を決定
 	local continent = Continents[zoneName]
-	local firstIslandName = continent.islands[1]
-	local firstIsland = Islands[firstIslandName]
+	local targetX, targetZ, baseY, hillAmplitude
 
-	if not firstIsland then
-		warn(
-			("[ZoneManager] 大陸 '%s' の最初の島 '%s' が見つかりません"):format(
-				zoneName,
-				firstIslandName
+	-- ★ 大陸定義に spawnPosition があればそれを使用
+	if continent.spawnPosition then
+		print("[ZoneManager] spawnPosition を使用してワープ先を決定")
+		targetX = continent.spawnPosition[1]
+		targetZ = continent.spawnPosition[3] or continent.spawnPosition[2] -- [1]=X, [2]=Z or [3]=Z
+
+		-- Y座標が指定されていればそれを使用、なければ自動計算用の基準値を設定
+		if continent.spawnPosition[2] and continent.spawnPosition[3] then
+			-- [1]=X, [2]=Y, [3]=Z の形式
+			baseY = continent.spawnPosition[2]
+			hillAmplitude = 0 -- Y座標が指定されている場合は地面検出をスキップ
+		else
+			-- [1]=X, [2]=Z の形式 → Y座標は自動計算
+			-- 最初の島の情報を参照して基準高度を取得
+			local firstIslandName = continent.islands[1]
+			local firstIsland = Islands[firstIslandName]
+			if firstIsland then
+				baseY = firstIsland.baseY
+				hillAmplitude = firstIsland.hillAmplitude or 20
+			else
+				baseY = 30 -- デフォルト値
+				hillAmplitude = 20
+			end
+		end
+	else
+		-- ★ spawnPosition がない場合は従来通り最初の島の中心を使用（後方互換性）
+		print("[ZoneManager] 最初の島の中心座標を使用してワープ先を決定")
+		local firstIslandName = continent.islands[1]
+		local firstIsland = Islands[firstIslandName]
+
+		if not firstIsland then
+			warn(
+				("[ZoneManager] 大陸 '%s' の最初の島 '%s' が見つかりません"):format(
+					zoneName,
+					firstIslandName
+				)
 			)
-		)
-		return false
+			return false
+		end
+
+		targetX = firstIsland.centerX
+		targetZ = firstIsland.centerZ
+		baseY = firstIsland.baseY
+		hillAmplitude = firstIsland.hillAmplitude or 20
 	end
 
-	local targetX = firstIsland.centerX
-	local targetZ = firstIsland.centerZ
-	local baseY = firstIsland.baseY
-	local hillAmplitude = firstIsland.hillAmplitude or 20
-
 	-- フェーズ6: 地面検出
-	local rayStartY = baseY + hillAmplitude + 100
-	local groundY = FieldGen.raycastGroundY(targetX, targetZ, rayStartY)
-
 	local spawnY
-	if groundY then
-		spawnY = groundY + 5
-		print(("[ZoneManager] 地面検出成功: Y=%.1f"):format(groundY))
+
+	-- ★ Y座標が明示的に指定されている場合（hillAmplitude=0）は地面検出をスキップ
+	if hillAmplitude == 0 then
+		spawnY = baseY
+		print(("[ZoneManager] 指定されたY座標を使用: Y=%.1f"):format(spawnY))
 	else
-		spawnY = baseY + (hillAmplitude * 0.6) + 10
-		warn(("[ZoneManager] 地面検出失敗、予想高度使用: Y=%.1f"):format(spawnY))
+		-- ★ Y座標が指定されていない場合は地面検出を実行
+		local rayStartY = baseY + hillAmplitude + 100
+		local groundY = FieldGen.raycastGroundY(targetX, targetZ, rayStartY)
+
+		if groundY then
+			spawnY = groundY + 5
+			print(("[ZoneManager] 地面検出成功: Y=%.1f"):format(groundY))
+		else
+			spawnY = baseY + (hillAmplitude * 0.6) + 10
+			warn(("[ZoneManager] 地面検出失敗、予想高度使用: Y=%.1f"):format(spawnY))
+		end
 	end
 
 	-- フェーズ7: プレイヤーをワープ
@@ -579,6 +620,125 @@ end
 
 function ZoneManager.GetPlayerZone(player)
 	return ZoneManager.PlayerZones[player]
+end
+
+-- ★ 座標指定でプレイヤーをワープ（ポータル用）
+function ZoneManager.WarpPlayerToZoneWithPosition(player, zoneName, spawnPosition)
+	print(
+		("[ZoneManager] %s を %s に座標指定でワープ中... (%.1f, %.1f, %.1f)"):format(
+			player.Name,
+			zoneName,
+			spawnPosition[1],
+			spawnPosition[2] or 0,
+			spawnPosition[3] or spawnPosition[2] or 0
+		)
+	)
+
+	-- === 新しい大陸でリスポーンを再有効化 ===
+	if _G.MonsterSpawner and _G.MonsterSpawner.EnableRespawnForZone then
+		print(("[ZoneManager DEBUG] EnableRespawnForZone を呼び出します (%s)"):format(zoneName))
+		_G.MonsterSpawner.EnableRespawnForZone(zoneName)
+	else
+		print(
+			"[ZoneManager DEBUG] _G.MonsterSpawner が見つからないためリスポーン再有効化をスキップ"
+		)
+	end
+
+	if not isContinent(zoneName) then
+		warn(("[ZoneManager] ゾーン '%s' は大陸ではありません"):format(zoneName))
+		return false
+	end
+
+	local character = player.Character
+	if not character then
+		warn(("[ZoneManager] %s のキャラクターが見つかりません"):format(player.Name))
+		return false
+	end
+
+	local hrp = character:FindFirstChild("HumanoidRootPart")
+	if not hrp then
+		return false
+	end
+
+	-- ========== ワープフロー ==========
+
+	-- フェーズ1: 現在のゾーンを取得
+	local currentZone = ZoneManager.GetPlayerZone(player)
+	print(("[ZoneManager] 現在のゾーン: %s"):format(currentZone or "nil"))
+
+	-- フェーズ2: 古い大陸をアンロード（Town は除外）
+	if currentZone and currentZone ~= zoneName and not table.find(PERMANENT_ZONES, currentZone) then
+		print(("[ZoneManager] 古い大陸をアンロード: %s"):format(currentZone))
+		cleanupEnemiesForZone(currentZone)
+		cleanupWorldObjects(currentZone)
+
+		if _G.MonsterSpawner and _G.MonsterSpawner.DisableRespawnForZone then
+			_G.MonsterSpawner.DisableRespawnForZone(currentZone)
+		end
+		ZoneManager.UnloadZone(currentZone)
+	end
+
+	-- フェーズ3: Town を常駐させる
+	if zoneName ~= TOWN_ZONE_NAME and not ZoneManager.ActiveZones[TOWN_ZONE_NAME] then
+		print(("[ZoneManager] Town をロード（常駐）"):format())
+		ZoneManager.LoadZone(TOWN_ZONE_NAME)
+	end
+
+	-- フェーズ4: 目的地ゾーンをロード
+	if not ZoneManager.ActiveZones[zoneName] then
+		print(("[ZoneManager] 目的地ゾーンをロード: %s"):format(zoneName))
+		ZoneManager.LoadZone(zoneName)
+	end
+
+	-- フェーズ5: 座標を解析
+	local targetX, targetZ, spawnY
+
+	if spawnPosition[2] and spawnPosition[3] then
+		-- [1]=X, [2]=Y, [3]=Z の形式
+		targetX = spawnPosition[1]
+		spawnY = spawnPosition[2]
+		targetZ = spawnPosition[3]
+		print(("[ZoneManager] 指定された座標を使用: (%.1f, %.1f, %.1f)"):format(targetX, spawnY, targetZ))
+	else
+		-- [1]=X, [2]=Z の形式 → Y座標は地面検出で自動計算
+		targetX = spawnPosition[1]
+		targetZ = spawnPosition[2]
+
+		-- 最初の島の情報を参照して基準高度を取得
+		local continent = Continents[zoneName]
+		local firstIslandName = continent.islands[1]
+		local firstIsland = Islands[firstIslandName]
+
+		local baseY = (firstIsland and firstIsland.baseY) or 30
+		local hillAmplitude = (firstIsland and firstIsland.hillAmplitude) or 20
+
+		local rayStartY = baseY + hillAmplitude + 100
+		local groundY = FieldGen.raycastGroundY(targetX, targetZ, rayStartY)
+
+		if groundY then
+			spawnY = groundY + 5
+			print(("[ZoneManager] 地面検出成功: Y=%.1f"):format(groundY))
+		else
+			spawnY = baseY + (hillAmplitude * 0.6) + 10
+			warn(("[ZoneManager] 地面検出失敗、予想高度使用: Y=%.1f"):format(spawnY))
+		end
+	end
+
+	-- フェーズ6: プレイヤーをワープ
+	hrp.CFrame = CFrame.new(targetX, spawnY, targetZ)
+	updatePlayerZone(player, zoneName)
+
+	print(
+		("[ZoneManager] %s を %s にワープ完了 (%.1f, %.1f, %.1f)"):format(
+			player.Name,
+			zoneName,
+			targetX,
+			spawnY,
+			targetZ
+		)
+	)
+
+	return true
 end
 
 -- プレイヤー退出時の処理
