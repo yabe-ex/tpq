@@ -65,7 +65,7 @@ end
 
 -- 定数
 local TOWN_ZONE_NAME = "ContinentTown"
-local PERMANENT_ZONES = { TOWN_ZONE_NAME }
+local PERMANENT_ZONES = { TOWN_ZONE_NAME, "TerrainBase" }
 
 -- ゾーンが大陸かチェック
 local function isContinent(zoneName)

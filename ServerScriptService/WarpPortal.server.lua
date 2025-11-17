@@ -83,14 +83,19 @@ end
 -- 大陸定義ファイル内のポータル定義から、ワープポータルを生成（確実に反応するTouchHitbox付き）
 -- ==========================================================
 local function createPortal(config, fromZone)
+	local zoneConfig = nil
+
 	if config.isTerrain then
 		print("[WarpPortal DEBUG] Terrainポータル生成:", config.name)
 	else
-		local islandName = config.islandName or fromZone
-		local zoneConfig = Islands[islandName]
-		if not zoneConfig then
-			warn("[WarpPortal] ゾーン設定が見つかりません:", islandName or "(nil)")
-			return nil
+		-- positionが設定されている場合、zoneConfigは不要
+		if not config.position then
+			local islandName = config.islandName or fromZone
+			zoneConfig = Islands[islandName]
+			if not zoneConfig then
+				warn("[WarpPortal] ゾーン設定が見つかりません:", islandName or "(nil)")
+				return nil
+			end
 		end
 	end
 
@@ -104,11 +109,18 @@ local function createPortal(config, fromZone)
 		portalY = config.position[2]
 		portalZ = config.position[3]
 		if not portalY then
-			local rayStartY = (zoneConfig.baseY or 30) + (zoneConfig.hillAmplitude or 20) + 100
+			-- zoneConfigがない場合はデフォルト値を使用
+			local baseY = zoneConfig and zoneConfig.baseY or 30
+			local hillAmplitude = zoneConfig and zoneConfig.hillAmplitude or 20
+			local rayStartY = baseY + hillAmplitude + 100
 			local groundY = FieldGen.raycastGroundY(portalX, portalZ, rayStartY)
-			portalY = (groundY and (groundY + portalHeight / 2)) or ((zoneConfig.baseY or 30) + portalHeight / 2)
+			portalY = (groundY and (groundY + portalHeight / 2)) or (baseY + portalHeight / 2)
 		end
 	else
+		if not zoneConfig then
+			warn("[WarpPortal] positionがoffsetX/Zも設定されていません:", config.name or "(nil)")
+			return nil
+		end
 		portalX = (zoneConfig.centerX or 0) + (config.offsetX or 0)
 		portalZ = (zoneConfig.centerZ or 0) + (config.offsetZ or 0)
 		local rayStartY = (zoneConfig.baseY or 30) + (zoneConfig.hillAmplitude or 20) + 100
@@ -210,6 +222,7 @@ local function createPortal(config, fromZone)
 
 	portal:SetAttribute("FromZone", fromZone)
 	portal:SetAttribute("ToZone", config.toZone)
+	portal:SetAttribute("Continent", fromZone) -- ポータルが所属する大陸を記録
 	if config.isTerrain then
 		portal:SetAttribute("IsTerrain", true)
 	end
@@ -449,51 +462,36 @@ function createPortalsForZone(zoneName)
 						#continent.portals
 					)
 				)
-				-- === Terrainポータルは islandName チェックをスキップ ===
-				if portalConfig.isTerrain then
-					print("[WarpPortal DEBUG] Terrainポータル生成:", portalConfig.name)
-					local portal = createPortal(portalConfig, continentName)
-					if portal then
-						print(
-							("[WarpPortal DEBUG] Terrainポータル生成成功: %s (Parent: %s)"):format(
-								portal.Name,
-								portal.Parent.Name
-							)
-						)
+				-- === ポータル生成 ===
+				local portalType = portalConfig.isTerrain and "Terrain" or "通常"
+				print(("[WarpPortal DEBUG] %sポータル生成: %s"):format(portalType, portalConfig.name))
+
+				-- islandNameは任意（通常ポータルのみ使用）
+				if not portalConfig.isTerrain then
+					local islandName = portalConfig.islandName
+					if islandName then
+						local island = Islands[islandName]
+						if not island then
+							warn("[WarpPortal DEBUG] 島が見つかりません:", islandName)
+							return
+						end
 					else
-						warn(("[WarpPortal DEBUG] Terrainポータル生成失敗: %s"):format(portalConfig.name))
+						print("[WarpPortal DEBUG] islandNameが未設定のため、大陸名を使用:", zoneName)
 					end
-					return
-				else
-					warn(("[WarpPortal DEBUG] isTerrainがfalseのためスキップ: %s"):format(portalConfig.name))
 				end
 
-				local islandName = portalConfig.islandName
-				if not islandName then
-					warn(
-						"[WarpPortal DEBUG] islandName が設定されていません:",
-						portalConfig.name or "(no name)"
-					)
-					return
-				end
-
-				local island = Islands[islandName]
-				if not island then
-					warn("[WarpPortal DEBUG] 島が見つかりません:", islandName)
-					return
-				end
-
-				print("[WarpPortal DEBUG] 通常ポータル生成:", portalConfig.name)
-				local portal = createPortal(portalConfig, continentName)
+				local portal = createPortal(portalConfig, zoneName)
 				if portal then
 					print(
-						("[WarpPortal DEBUG] 通常ポータル生成成功: %s (Parent: %s)"):format(
+						("[WarpPortal DEBUG] %sポータル生成成功: %s (Parent: %s)"):format(
+							portalType,
 							portal.Name,
 							portal.Parent.Name
 						)
 					)
+					table.insert(activePortals[zoneName], portal)
 				else
-					warn(("[WarpPortal DEBUG] 通常ポータル生成失敗: %s"):format(portalConfig.name))
+					warn(("[WarpPortal DEBUG] %sポータル生成失敗: %s"):format(portalType, portalConfig.name))
 				end
 			end)
 		end
@@ -508,8 +506,9 @@ function createPortalsForZone(zoneName)
 end
 
 function destroyPortalsForZone(zoneName)
-	if zoneName == "ContinentTown" then
-		print("[WarpPortal] ContinentTown は削除対象外のためスキップします")
+	-- 常駐ゾーンのポータルは削除対象外
+	if zoneName == "ContinentTown" or zoneName == "TerrainBase" then
+		print(("[WarpPortal] %s は削除対象外のためスキップします"):format(zoneName))
 		return
 	end
 	local actualZoneName = zoneName
@@ -523,12 +522,6 @@ function destroyPortalsForZone(zoneName)
 				actualZoneName
 			)
 		)
-		return
-	end
-
-	-- ContinentTown のポータルは削除対象外
-	if zoneName == "ContinentTown" then
-		print("[WarpPortal] ContinentTown は削除対象外のためスキップします")
 		return
 	end
 

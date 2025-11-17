@@ -124,7 +124,7 @@ return {
 		{
 			isFastTravelTarget = true,
 			name = "九州の桜島",
-			islandName = "Hokkaido_01",
+			-- islandName = "Hokkaido_01",
 			toZone = "Hokkaido_C",
 			position = { 447.2, 31.3, 685.2 }, --866.7, 24.2, 491.5
 			spawnPosition = { 870.6, 31.2, 492.7 },

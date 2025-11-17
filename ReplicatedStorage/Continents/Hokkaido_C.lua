@@ -378,7 +378,7 @@ return {
 		{
 			isFastTravelTarget = true,
 			name = "北海道の北側",
-			islandName = "Kyusyu_01",
+			-- islandName = "Kyusyu_01",
 			toZone = "Kyusyu_C",
 			position = { 870.6, 31.2, 492.7 },
 			spawnPosition = { 447.2, 31.3, 685.2 },
@@ -393,10 +393,10 @@ return {
 		{
 			isFastTravelTarget = true,
 			name = "北海道の南側",
-			islandName = "Kyusyu_01",
+			-- islandName = "Kyusyu_01",
 			toZone = "Kyusyu_C",
 			position = { 82.6, 31.3, 821.6 },
-			spawnPosition = { 115.4, 31.7, 769.7 },
+			spawnPosition = { 414.7, 31.1, 596.0 },
 			model = "Door",
 			size = 1,
 			label = "→ 九州へ",
@@ -408,7 +408,7 @@ return {
 		{
 			name = "Portal_Terrain",
 			isFastTravelTarget = true,
-			islandName = "Kyusyu_01",
+			-- islandName = "Kyusyu_01",
 			isTerrain = true, -- Terrainモード
 			position = { 450.4, 43.8, 405.2 }, -- 現在ポータルの設置位置
 			targetPosition = { 574.1, 5381.9, -770.1 },
