@@ -435,14 +435,11 @@ function ZoneManager.UnloadZone(zoneName)
 		end
 	end
 
-	-- ステップ2: モンスター削除
-	for _, model in ipairs(workspace:GetChildren()) do
-		if model:IsA("Model") and model:GetAttribute("IsEnemy") then
-			local spawnZone = model:GetAttribute("SpawnZone")
-			if spawnZone == zoneName then
-				model:Destroy()
-			end
-		end
+	-- ステップ2: モンスター削除（ActiveMonsters、RespawnQueue、MonsterCountsを正しく削除）
+	if _G.DespawnMonstersForZone then
+		_G.DespawnMonstersForZone(zoneName)
+	else
+		warn("[ZoneManager] _G.DespawnMonstersForZone が見つかりません")
 	end
 
 	-- ステップ3: ポータル削除
@@ -459,9 +456,7 @@ function ZoneManager.UnloadZone(zoneName)
 		end
 	end
 
-	if _G.ResetMonsterCountsForZone then
-		_G.ResetMonsterCountsForZone(zoneName)
-	end
+	-- ResetMonsterCountsForZone は DespawnMonstersForZone 内で実行済み
 
 	ZoneManager.ActiveZones[zoneName] = nil
 	print(("[ZoneManager] ゾーン削除完了: %s"):format(zoneName))

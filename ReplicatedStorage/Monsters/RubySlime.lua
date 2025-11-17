@@ -20,17 +20,7 @@ return {
 		{ level = "level_2", weight = 80 }, -- 30%の確率でレベル2
 	},
 
-	-- 旧設定（互換性のため残す）
-	Damage = 1, -- 後で削除予定
-
 	-- スポーン設定
-	-- SpawnLocations = {
-	-- 	{
-	-- 		islandName = "Hokkaido_31",
-	-- 		count = 10,
-	-- 		radiusPercent = 50,
-	-- 	},
-	-- },
 	SpawnLocations = {
 		{
 			islandName = "Hokkaido_02",
@@ -61,21 +51,3 @@ return {
 	Brave = 6, -- 勇敢さレベル（0～9）
 	VariationRange = 2, -- 個体差の幅
 }
-
--- "Plastic"
--- "Brick"
--- "Granite"
--- "Marble"
--- "Slate"
--- "Concrete"
--- "Ground"
--- "Grass"
--- "Wood"
--- "Metal"
--- "Neon"
--- "Glass"
--- "Ice"
--- "Pebble"
--- "Asphalt"
--- "Foil"
--- "DiamondPlate"

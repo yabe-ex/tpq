@@ -685,7 +685,6 @@ local function spawnMonster(template: Model, index: number, def, islandName)
 		end
 	end
 
-	-- fallback: islandName から抽出
 	if continentName == "Unknown" and islandName then
 		local inferred = string.match(islandName, "^(.-)_")
 		if inferred then
@@ -693,16 +692,36 @@ local function spawnMonster(template: Model, index: number, def, islandName)
 		end
 	end
 
-	-- print(("[MonsterSpawner DEBUG] spawnMonster called for %s (continentName=%s)"):format(islandName, continentName))
-	-- print("[MonsterSpawner DEBUG] activeRespawnZones =", activeRespawnZones)
-	-- print("[MonsterSpawner DEBUG] respawnFlag =", activeRespawnZones[continentName])
-
 	if activeRespawnZones[continentName] == false then
-		-- print(
-		-- 	("[MonsterSpawner] %s のリスポーンが無効化されているためスキップ"):format(
-		-- 		continentName
-		-- 	)
-		-- )
+		return
+	end
+
+	local monsterName = def.Name or template.Name
+	if not MonsterCounts[islandName] then
+		MonsterCounts[islandName] = {}
+	end
+
+	-- 定義上の最大数を取得
+	local maxCount = 0
+	if def.SpawnLocations then
+		for _, location in ipairs(def.SpawnLocations) do
+			if location.islandName == islandName then
+				maxCount = location.count or 0
+				break
+			end
+		end
+	end
+
+	local currentCount = MonsterCounts[islandName][monsterName] or 0
+	if currentCount >= maxCount then
+		print(
+			("[MonsterSpawner] %s のスポーンをスキップ（%s: %d/%d）"):format(
+				monsterName,
+				islandName,
+				currentCount,
+				maxCount
+			)
+		)
 		return
 	end
 
@@ -1377,17 +1396,31 @@ local function processRespawnQueue()
 							-- ★ 修正：島名から大陸名に変換
 							local zoneName = getContinentNameFromIsland(data.islandName)
 
-							print(
-								("[MonsterSpawner] %s が %s にリスポーン（大陸: %s）"):format(
-									data.monsterName,
-									data.islandName,
-									zoneName
+							-- ★【新規】ゾーンがアクティブかどうかをチェック
+							local ZoneManager = require(script.Parent.ZoneManager)
+							if not ZoneManager.ActiveZones[zoneName] then
+								-- ゾーンがアンロードされている場合、リスポーンをスキップ
+								print(
+									("[MonsterSpawner] %s のリスポーンをスキップ（ゾーン %s はアンロード済み）"):format(
+										data.monsterName,
+										zoneName
+									)
 								)
-							)
+								table.remove(RespawnQueue, i)
+							-- ループを続ける（次のエントリをチェック）
+							else
+								-- ゾーンがアクティブな場合のみリスポーン実行
+								print(
+									("[MonsterSpawner] %s が %s にリスポーン（大陸: %s）"):format(
+										data.monsterName,
+										data.islandName,
+										zoneName
+									)
+								)
 
-							-- ★【修正】spawnMonstersWithCounts ではなく、spawnMonster を直接呼び出す
-							-- (spawnMonster は内部で MonsterCounts[islandName] をインクリメントする)
-							spawnMonster(template, 1, data.def, data.islandName)
+								spawnMonster(template, 1, data.def, data.islandName)
+								table.remove(RespawnQueue, i)
+							end
 						else
 							warn(
 								("[MonsterSpawner] テンプレート '%s' が見つかりません"):format(
@@ -1529,8 +1562,8 @@ local function resetMonsterCountsForZone(zoneName)
 end
 
 -- ゾーンのモンスターを削除する
-function despawnMonstersForZone(zoneName)
-	-- print(("[MonsterSpawner] %s のモンスターを削除中..."):format(zoneName))
+function _G.DespawnMonstersForZone(zoneName)
+	print(("[MonsterSpawner] %s のモンスターを削除中..."):format(zoneName))
 
 	local removedCount = 0
 
@@ -1547,13 +1580,38 @@ function despawnMonstersForZone(zoneName)
 	end
 
 	-- RespawnQueue からも削除
+	-- ★【修正】RespawnQueueにはzoneNameフィールドがないため、islandNameから大陸名を取得して比較
+	local queueRemovedCount = 0
 	for i = #RespawnQueue, 1, -1 do
-		if RespawnQueue[i].zoneName == zoneName then
+		local entry = RespawnQueue[i]
+		local entryZoneName = getContinentNameFromIsland(entry.islandName)
+		if entryZoneName == zoneName then
 			table.remove(RespawnQueue, i)
+			queueRemovedCount = queueRemovedCount + 1
 		end
 	end
 
-	-- print(("[MonsterSpawner] %s のモンスターを %d体 削除しました"):format(zoneName, removedCount))
+	print(
+		("[MonsterSpawner] %s のリスポーンキューを %d件 削除しました"):format(
+			zoneName,
+			queueRemovedCount
+		)
+	)
+
+	-- ★【ここから追加】MonsterCountsもリセット
+	if _G.ResetMonsterCountsForZone then
+		_G.ResetMonsterCountsForZone(zoneName)
+	else
+		warn("[MonsterSpawner] _G.ResetMonsterCountsForZone が見つかりません")
+	end
+	-- ★【ここまで追加】
+
+	print(
+		("[MonsterSpawner] %s のモンスターを %d体 削除しました（アクティブ）"):format(
+			zoneName,
+			removedCount
+		)
+	)
 end
 
 -- ===== MemoryMonitor 用のモンスター詳細表示（更新版）=====
@@ -1627,7 +1685,7 @@ processRespawnQueue()
 -- print("[MonsterSpawner] === 初期化完了（バトル即座開始対応）===")
 
 _G.SpawnMonstersForZone = spawnMonstersForZone
-_G.DespawnMonstersForZone = despawnMonstersForZone
+-- _G.DespawnMonstersForZone = despawnMonstersForZone
 _G.SpawnMonstersWithCounts = spawnMonstersWithCounts
 _G.GetZoneMonsterCounts = getZoneMonsterCounts
 _G.UpdateAllMonsterCounts = updateAllMonsterCounts
