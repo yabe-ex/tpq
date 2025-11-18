@@ -6,7 +6,7 @@ local continent = {
 	spawnPosition = { 377.3, 5131.0, 112.4 }, -- プレイヤーの初期スポーン位置
 	portals = {
 		{
-			isFastTravelTarget = false,
+			isFastTravelTarget = true,
 			name = "北海道へ",
 			toZone = "Hokkaido_C",
 			position = { 377.3, 5131.0, 112.4 }, -- Terrain上の設置座標 (Y座標を元に戻す)
@@ -21,7 +21,7 @@ local continent = {
 			isTerrain = true,
 		},
 		{
-			isFastTravelTarget = false,
+			isFastTravelTarget = true,
 			name = "九州へ",
 			toZone = "Kyusyu_C",
 			position = { 377.3, 5131.0, -112.4 }, -- Terrain上の設置座標 (Y座標を元に戻す)

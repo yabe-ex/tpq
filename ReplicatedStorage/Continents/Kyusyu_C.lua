@@ -138,7 +138,42 @@ return {
 		},
 	},
 	paths = {},
-	fieldObjects = {},
+	fieldObjects = {
+		{
+			model = "box_closed",
+			position = { 90.3, 31.2, 795.9 },
+			mode = "fixed",
+			size = 1,
+			rotation = { 0, 0, 0 },
+			stickToGround = false, -- 省略可（trueが既定）
+			groundOffset = 0, -- 芝生で少し浮かせたい時
+			alignToSlope = false, -- 斜面に木を傾けたくないならfalse
+
+			interaction = {
+				type = "chest", -- インタラクションタイプ
+				action = "開ける", -- ボタンに表示されるテキスト
+				key = "E", -- キーバインド
+				range = 8, -- インタラクション可能距離（スタッド）
+
+				-- 宝箱固有の情報
+				chestId = "hokkaido_chest_03", -- ユニークID
+				openedModel = "box_opened", -- 開いた状態のモデル名
+				rewards = {
+					{ item = "ゴールド", count = 120 },
+				},
+				displayDuration = 3, -- 報酬表示時間（秒）
+			},
+		},
+		{
+			model = "Tree1",
+			position = { 94.3, 31.2, 799.9 },
+			size = 1.5,
+			rotation = { 0, 0, 0 },
+			stickToGround = true, -- 省略可（trueが既定）
+			groundOffset = 0.15, -- 芝生で少し浮かせたい時
+			alignToSlope = true, -- 斜面に木を傾けたくないならfalse
+		},
+	},
 	BGM = "",
 	BGMVolume = 0.2,
 }

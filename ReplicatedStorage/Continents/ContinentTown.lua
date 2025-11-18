@@ -101,7 +101,7 @@ return {
 
 		{
 			model = "box_closed",
-			position = { 42.4, 56.5, 10.9 },
+			position = { 497.0, 31.2, 725.1 },
 			mode = "ground",
 			size = 1,
 			rotation = { 0, 0, 0 },

@@ -1,23 +1,23 @@
 total 8
-drwxr-xr-x  17 yabea  staff  544 11  8 10:50 ReplicatedStorage
-drwxr-xr-x  22 yabea  staff  704 11  8 10:50 ServerScriptService
-drwxr-xr-x  18 yabea  staff  576 11  8 10:50 StartPlayerScripts
+drwxr-xr-x  17 yabea  staff  544 11 12 22:24 ReplicatedStorage
+drwxr-xr-x  22 yabea  staff  704 11 13 09:41 ServerScriptService
+drwxr-xr-x  18 yabea  staff  576 11 13 09:41 StartPlayerScripts
 -rwxr-xr-x   1 yabea  staff  976 10  4 11:52 go.sh
--rw-r--r--   1 yabea  staff    0 11  8 11:14 out.txt
+-rw-r--r--   1 yabea  staff    0 11 19 07:26 out.txt
 
 ./ReplicatedStorage:
 total 128
 -rw-r--r--   1 yabea  staff   1254 10 13 08:29 CombatMath_remove.lua
 drwxr-xr-x   5 yabea  staff    160 10 18 09:51 Config
-drwxr-xr-x  17 yabea  staff    544 11  8 10:50 Continents
--rw-r--r--   1 yabea  staff  47367 11  8 10:50 FieldGen.lua
+drwxr-xr-x  12 yabea  staff    384 11 16 15:09 Continents
+-rw-r--r--   1 yabea  staff  47367 11 12 13:00 FieldGen.lua
 drwxr-xr-x   2 yabea  staff     64 10 12 08:58 FieldObjects
 -rw-r--r--   1 yabea  staff   2722 10  6 18:17 GameEvents.lua
-drwxr-xr-x  18 yabea  staff    576 11  8 10:50 Islands
--rw-r--r--   1 yabea  staff   1946 10 18 09:51 LoadingHints.lua
-drwxr-xr-x   7 yabea  staff    224 11  8 10:50 Monsters
+drwxr-xr-x  18 yabea  staff    576 11 12 13:00 Islands
+-rw-r--r--   1 yabea  staff   2131 11 15 10:43 LoadingHints.lua
+drwxr-xr-x   7 yabea  staff    224 11 13 09:41 Monsters
 drwxr-xr-x   2 yabea  staff     64 10 17 11:11 Remotes
--rw-r--r--   1 yabea  staff   1153 10  6 18:17 SharedState.lua
+-rw-r--r--   1 yabea  staff   1153 11 12 22:24 SharedState.lua
 drwxr-xr-x   2 yabea  staff     64 10  4 10:07 Sounds
 drwxr-xr-x   8 yabea  staff    256 10 14 10:28 Typing
 drwxr-xr-x   3 yabea  staff     96 10 14 08:22 Util
@@ -25,26 +25,21 @@ drwxr-xr-x   3 yabea  staff     96 10 14 08:22 Util
 ./ReplicatedStorage/Config:
 total 24
 -rw-r--r--  1 yabea  staff   432 10 13 21:18 DebugConfig.lua
--rw-r--r--  1 yabea  staff  2361 11  2 09:45 DisplayConfig.lua
+-rw-r--r--  1 yabea  staff  2377 11 16 12:42 DisplayConfig.lua
 -rw-r--r--  1 yabea  staff   392 10 13 20:38 GameDebug.lua
 
 ./ReplicatedStorage/Continents:
-total 160
--rw-r--r--  1 yabea  staff  4568 10 18 09:51 BananaLand.lua
--rw-r--r--  1 yabea  staff  5501 10 18 22:46 ContientTown.lua
--rw-r--r--  1 yabea  staff   501 10 18 09:51 ContinentArena.lua
--rw-r--r--  1 yabea  staff  8173 10 18 09:51 ContinentHokkaido.lua
--rw-r--r--  1 yabea  staff  3326 10 22 22:51 ContinentKyushu.lua
--rw-r--r--  1 yabea  staff   616 10 10 16:43 ContinentShikoku.lua
--rw-r--r--  1 yabea  staff  4509 10 22 22:02 ContinentTown.lua
--rw-r--r--  1 yabea  staff  2303 10 19 00:17 ContinentVendant.lua
--rw-r--r--  1 yabea  staff  1134 10 19 06:12 ContinentVendant2.lua
--rw-r--r--  1 yabea  staff  1134 10 19 06:26 ContinentVendant3.lua
--rw-r--r--  1 yabea  staff  1130 10 18 16:46 Greenland.lua
--rw-r--r--  1 yabea  staff  7418 11  8 11:00 Hokkaido_C.lua
--rw-r--r--  1 yabea  staff  1684 11  8 10:50 Kyusyu_C.lua
--rw-r--r--  1 yabea  staff   650 11  8 10:50 Registry.lua
--rw-r--r--  1 yabea  staff   726 10 11 10:50 Snowland.lua
+total 120
+-rw-r--r--  1 yabea  staff   5786 11 12 13:00 ContientTown.lua
+-rw-r--r--  1 yabea  staff    501 10 18 09:51 ContinentArena.lua
+-rw-r--r--  1 yabea  staff   8173 10 18 09:51 ContinentHokkaido.lua
+-rw-r--r--  1 yabea  staff   3326 10 22 22:51 ContinentKyushu.lua
+-rw-r--r--  1 yabea  staff   5135 11 17 19:35 ContinentTown.lua
+-rw-r--r--  1 yabea  staff  10462 11 18 13:16 Hokkaido_C.lua
+-rw-r--r--  1 yabea  staff   3599 11 17 19:39 Kyusyu_C.lua
+-rw-r--r--  1 yabea  staff    752 11 16 18:12 Registry.lua
+-rw-r--r--  1 yabea  staff    847 11 12 13:00 Snowland.lua
+-rw-r--r--  1 yabea  staff   1261 11 17 19:27 TerrainBase_C.lua
 
 ./ReplicatedStorage/FieldObjects:
 total 0
@@ -59,8 +54,8 @@ total 248
 -rw-r--r--  1 yabea  staff  15310 11  2 20:53 Hokkaido.lua
 -rw-r--r--  1 yabea  staff   4633 10 18 09:51 HokkaidoIslands.lua
 -rw-r--r--  1 yabea  staff   6644 10 18 09:51 KyushuIslands.lua
--rw-r--r--  1 yabea  staff  24979 11  8 10:50 Kyusyu.lua
--rw-r--r--  1 yabea  staff   1665 11  8 10:50 Registry.lua
+-rw-r--r--  1 yabea  staff  24979 11 12 13:00 Kyusyu.lua
+-rw-r--r--  1 yabea  staff   1665 11 12 13:00 Registry.lua
 -rw-r--r--  1 yabea  staff   1356 10  6 10:43 ShikokuIslands.lua
 -rw-r--r--  1 yabea  staff   3679 10 11 11:06 Snowland.lua
 -rw-r--r--  1 yabea  staff   1561 10 18 13:59 Town.lua
@@ -71,10 +66,10 @@ total 248
 ./ReplicatedStorage/Monsters:
 total 40
 -rw-r--r--  1 yabea  staff  1801 10 31 10:49 BrickSlime.lua
--rw-r--r--  1 yabea  staff  1663 10 31 10:43 IceSlime.lua
--rw-r--r--  1 yabea  staff  1649 11  8 10:50 NeonSlime.lua
--rw-r--r--  1 yabea  staff   234 11  1 12:40 Registry.lua
--rw-r--r--  1 yabea  staff  1691 11  3 08:11 RubySlime.lua
+-rw-r--r--  1 yabea  staff  1787 11 12 13:00 IceSlime.lua
+-rw-r--r--  1 yabea  staff  1647 11 12 13:00 NeonSlime.lua
+-rw-r--r--  1 yabea  staff   231 11 12 13:00 Registry.lua
+-rw-r--r--  1 yabea  staff  1355 11 17 10:55 RubySlime.lua
 
 ./ReplicatedStorage/Remotes:
 total 0
@@ -102,43 +97,43 @@ total 16
 -rw-r--r--  1 yabea  staff  5029 10 13 21:16 Logger.lua
 
 ./ServerScriptService:
-total 472
--rw-r--r--  1 yabea  staff  32777 11  8 10:50 BattleSystem.lua
--rw-r--r--@ 1 yabea  staff  12305 11  5 14:04 Bootstrap.server.lua
--rw-r--r--  1 yabea  staff   3932 10 12 11:46 DataCollectors.lua
+total 496
+-rw-r--r--  1 yabea  staff  32826 11 16 19:12 BattleSystem.lua
+-rw-r--r--@ 1 yabea  staff  12491 11 17 18:27 Bootstrap.server.lua
+-rw-r--r--  1 yabea  staff   3591 11 12 13:18 DataCollectors.lua
 -rw-r--r--  1 yabea  staff   3480 10 20 08:55 DataStoreManager.lua
 -rw-r--r--  1 yabea  staff   5103 10 18 09:52 DebugCommands.server.lua
--rw-r--r--  1 yabea  staff   3195 11  8 10:50 DetectTerrainRange.server.lua
--rw-r--r--  1 yabea  staff   5076 11  8 10:50 ElevateTerrainLarge.server.lua
--rw-r--r--  1 yabea  staff   5160 10 30 21:48 FastTravelSystem.server.lua
+-rw-r--r--  1 yabea  staff   3195 11 12 13:00 DetectTerrainRange.server.lua_backup
+-rw-r--r--  1 yabea  staff   5076 11 12 13:00 ElevateTerrainLarge.server.lua
+-rw-r--r--  1 yabea  staff   7185 11 16 14:30 FastTravelSystem.server.lua
 -rw-r--r--  1 yabea  staff   7911 10 12 21:53 InteractionSystem.server.lua
 -rw-r--r--  1 yabea  staff    708 10  9 15:11 LoadTest.server.lua
--rw-r--r--  1 yabea  staff   1713 10 18 09:51 MemoryMonitor.server.lua
--rw-r--r--  1 yabea  staff  50836 11  3 18:22 MonsterSpawner.server.lua
--rw-r--r--  1 yabea  staff   4211 10 20 11:48 OceanSafety.server.lua
--rw-r--r--  1 yabea  staff  16832 11  8 10:50 PlayerStats.lua
+-rw-r--r--  1 yabea  staff   1719 11 12 13:18 MemoryMonitor.server.lua
+-rw-r--r--  1 yabea  staff  54792 11 17 16:49 MonsterSpawner.server.lua
+-rw-r--r--  1 yabea  staff   4571 11 17 08:02 OceanSafety.server.lua
+-rw-r--r--  1 yabea  staff  16236 11 13 19:55 PlayerStats.lua
 -rw-r--r--  1 yabea  staff   3532 10 14 01:03 ResetSave.server.lua
 -rw-r--r--  1 yabea  staff    916 10 14 19:26 SettingsService.server.lua
 -rw-r--r--  1 yabea  staff   1011 10 13 12:23 SoundRegistry.server.lua
 -rw-r--r--  1 yabea  staff   5612 10  5 20:34 TowerPlacement.server.lua
--rw-r--r--  1 yabea  staff  13872 11  8 10:50 WarpPortal.server.lua
--rw-r--r--  1 yabea  staff  15072 10 30 21:30 ZoneManager.lua
+-rw-r--r--  1 yabea  staff  18367 11 17 10:32 WarpPortal.server.lua
+-rw-r--r--  1 yabea  staff  24555 11 17 16:51 ZoneManager.lua
 
 ./StartPlayerScripts:
-total 448
--rw-r--r--  1 yabea  staff   5876 10 14 18:09 BGMManager.client.lua
--rw-r--r--  1 yabea  staff  50918 11  8 10:50 BattleUI.client.lua
--rw-r--r--  1 yabea  staff   7564 11  8 10:50 DeathUI.client.lua
+total 480
+-rw-r--r--  1 yabea  staff   5996 11 16 19:20 BGMManager.client.lua
+-rw-r--r--  1 yabea  staff  54408 11 13 11:22 BattleUI.client.lua
+-rw-r--r--  1 yabea  staff   7564 11 11 22:53 DeathUI.client.lua
 -rw-r--r--  1 yabea  staff   3155 10 12 22:32 DebugButtons.client.lua
--rw-r--r--  1 yabea  staff   8117 10 18 09:51 FastTravelUI.client.lua
+-rw-r--r--  1 yabea  staff   8459 11 16 14:14 FastTravelUI.client.lua
 -rw-r--r--  1 yabea  staff   5920 10 12 21:52 InteractionUI.client.lua
--rw-r--r--  1 yabea  staff   6133 10 14 00:24 LevelUpUI.client.lua
--rw-r--r--@ 1 yabea  staff   6427 10 18 09:51 LoadingScreen.client.lua
--rw-r--r--  1 yabea  staff   8316 10 18 09:51 LoadingUI.client.lua
+-rw-r--r--  1 yabea  staff  11536 11 13 11:29 LevelUpUI.client.lua
+-rw-r--r--@ 1 yabea  staff   6470 11 15 10:45 LoadingScreen.client.lua
+-rw-r--r--  1 yabea  staff   8362 11 15 10:46 LoadingUI.client.lua
 -rw-r--r--  1 yabea  staff  41732 10 14 19:20 MenuUI.client.lua
--rw-r--r--@ 1 yabea  staff  20743 10 20 10:11 Minimap.client.lua
+-rw-r--r--@ 1 yabea  staff  21829 11 17 08:30 Minimap.client.lua
 -rw-r--r--  1 yabea  staff   5948 10 12 18:45 RewardPopup.client.lua
 -rw-r--r--  1 yabea  staff   6635 10 20 10:02 StatBuffManager.client.lua
--rw-r--r--  1 yabea  staff  10967 11  8 10:50 StatusUI.client.lua
+-rw-r--r--  1 yabea  staff  13028 11 13 20:10 StatusUI.client.lua
 -rw-r--r--  1 yabea  staff   4316 11  8 10:50 UIToggleManager.client.lua
--rw-r--r--  1 yabea  staff   2045 10  6 10:49 WarpUI.client.lua
+-rw-r--r--  1 yabea  staff   2039 11 17 08:22 WarpUI.client.lua

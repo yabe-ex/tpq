@@ -329,6 +329,32 @@ return {
 			},
 		},
 		-- {
+		-- 	model = "box_closed",
+		-- 	position = { 90.3, 31.2, 795.9 },
+		-- 	mode = "ground",
+		-- 	size = 1,
+		-- 	rotation = { 0, 0, 0 },
+		-- 	stickToGround = false, -- 省略可（trueが既定）
+		-- 	groundOffset = 0, -- 芝生で少し浮かせたい時
+		-- 	alignToSlope = false, -- 斜面に木を傾けたくないならfalse
+
+		-- 	interaction = {
+		-- 		type = "chest", -- インタラクションタイプ
+		-- 		action = "開ける", -- ボタンに表示されるテキスト
+		-- 		key = "E", -- キーバインド
+		-- 		range = 5, -- インタラクション可能距離（スタッド）
+
+		-- 		-- 宝箱固有の情報
+		-- 		chestId = "town_chest_01", -- ユニークID
+		-- 		openedModel = "box_opened", -- 開いた状態のモデル名
+		-- 		rewards = {
+		-- 			{ item = "ポーション", count = 3 },
+		-- 			{ item = "ゴールド", count = 50 },
+		-- 		},
+		-- 		displayDuration = 2, -- 報酬表示時間（秒）
+		-- 	},
+		-- },
+		-- {
 		-- 	model = "crystal1",
 		-- 	position = { 900.1, 31.4, 482.8 }, --81050950253995
 		-- 	rotation = { 0, 4, 0 },
@@ -395,14 +421,14 @@ return {
 			name = "北海道の南側",
 			-- islandName = "Kyusyu_01",
 			toZone = "Kyusyu_C",
-			position = { 82.6, 31.3, 821.6 },
-			spawnPosition = { 414.7, 31.1, 596.0 },
-			model = "Door",
+			position = { 82.6, 33.3, 821.6 },
+			spawnPosition = { 685.1, 31.3, 159.7 },
+			model = "lightningBall",
 			size = 1,
 			label = "→ 九州へ",
-			rotate = true,
-			rotation = { 0, 90, 0 },
-			snapToGround = true,
+			-- rotate = true,
+			-- rotation = { 0, 90, 0 },
+			snapToGround = false,
 			heightOffset = 0,
 		},
 		{
@@ -416,6 +442,36 @@ return {
 			model = "Door",
 			size = 1,
 			label = "→ 大地へ",
+			rotate = true,
+			snapToGround = true,
+			heightOffset = 0,
+		},
+		{
+			name = "Portal_Terrain",
+			isFastTravelTarget = true,
+			-- islandName = "Kyusyu_01",
+			isTerrain = true, -- Terrainモード
+			position = { 460.4, 48.8, 415.2 }, -- 現在ポータルの設置位置
+			targetPosition = { -494, 5585, 1193 },
+			spawnPosition = { -494, 5586, 1193 },
+			model = "Door",
+			size = 1,
+			label = "→ 大地上層へ",
+			rotate = true,
+			snapToGround = true,
+			heightOffset = 0,
+		},
+		{
+			name = "Portal_Terrain",
+			isFastTravelTarget = true,
+			-- islandName = "Kyusyu_01",
+			isTerrain = true, -- Terrainモード
+			position = { 466.4, 56.8, 425.2 }, -- 現在ポータルの設置位置
+			targetPosition = { -99, 4511, -52 },
+			spawnPosition = { -99, 4511, -52 },
+			model = "Door",
+			size = 1,
+			label = "→ 大地上層へ",
 			rotate = true,
 			snapToGround = true,
 			heightOffset = 0,
