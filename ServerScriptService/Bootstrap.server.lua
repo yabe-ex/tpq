@@ -125,6 +125,17 @@ local PlayerStatsModule = require(script.Parent:WaitForChild("PlayerStats"))
 local DataStoreManager = require(ServerScriptService:WaitForChild("DataStoreManager"))
 local DataCollectors = require(ServerScriptService:WaitForChild("DataCollectors"))
 
+-- DialogueSystem のロード（オプション）
+local DialogueSystem
+local ok, result = pcall(function()
+	return require(script.Parent:WaitForChild("DialogueSystem", 5))
+end)
+if ok then
+	DialogueSystem = result
+else
+	warn("[Bootstrap] DialogueSystem のロード失敗（オプション）: ", result)
+end
+
 local START_ZONE_NAME = "TerrainBase"
 local LastLoadedData = {}
 
